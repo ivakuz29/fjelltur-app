@@ -23,4 +23,8 @@ router.get('/turer', requireAuth, (req, res) => {
   res.sendFile(path.join(viewsDir, 'turer.html'));
 });
 
+router.get('/turer/:id', requireAuth, (req, res) => {
+  res.sendFile(path.join(viewsDir, 'tur-detalj.html'));
+});
+
 module.exports = router;

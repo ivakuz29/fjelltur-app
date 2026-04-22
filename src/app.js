@@ -8,9 +8,20 @@ const tripRoutes = require('./routes/tripRoutes');
 
 const app = express();
 
+app.disable('etag');
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+app.use(express.static(path.join(__dirname, '..', 'public'), {
+  etag: false,
+  lastModified: false,
+  maxAge: 0
+}));
 app.use(session({
   secret: 'hemmelig-n\u00F8kkel-123',
   resave: false,

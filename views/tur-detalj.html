@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fjelltur &mdash; Turdetaljer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/css/style.css?v=20260422-8">
+</head>
+<body>
+  <header class="app-header">
+    <a href="/turer" class="app-brand app-brand-link">Fjell<em>tur</em></a>
+    <div class="app-user">
+      <span class="app-username">&mdash; <span id="nav-bruker"></span></span>
+      <button type="button" class="btn-logout" id="logout-btn">Logg ut</button>
+    </div>
+  </header>
+
+  <div class="trip-loading" id="trip-loading">Laster tur...</div>
+
+  <div class="trip-layout" id="trip-hero-panel" hidden>
+    <div class="trip-viewer">
+      <img id="trip-stage-image" class="trip-viewer-img" src="" alt="">
+      <button type="button" class="trip-stage-nav trip-stage-prev" id="trip-prev" aria-label="Forrige bilde">&#8249;</button>
+      <button type="button" class="trip-stage-nav trip-stage-next" id="trip-next" aria-label="Neste bilde">&#8250;</button>
+      <div class="trip-viewer-overlay">
+        <span id="trip-stage-counter"></span>
+      </div>
+    </div>
+
+    <div class="trip-info-panel">
+      <a href="/turer" class="trip-back-link">&larr; Tilbake til alle turer</a>
+      <p class="trip-kicker" id="trip-kicker"></p>
+      <h1 class="trip-title" id="trip-title"></h1>
+      <div class="trip-stat-row" id="trip-stat-row"></div>
+      <p class="trip-note-large" id="trip-note"></p>
+    </div>
+  </div>
+
+  <section class="comment-panel" id="comment-panel" hidden>
+    <div class="comment-panel-inner">
+      <div class="comment-panel-head">
+        <div>
+          <p class="trip-kicker">Samtale</p>
+          <h2>Kommentarer</h2>
+        </div>
+        <span class="comment-count" id="comment-count"></span>
+      </div>
+
+      <form id="comment-form" class="comment-form">
+        <label class="comment-label" for="comment-input">Skriv en kommentar</label>
+        <textarea id="comment-input" placeholder="Hva tenkte du om denne turen?" required></textarea>
+        <div class="comment-form-actions">
+          <button type="submit" class="btn btn-primary">Legg til kommentar</button>
+          <p class="skjema-melding" id="comment-message"></p>
+        </div>
+      </form>
+
+      <div id="comment-list" class="comment-list"></div>
+    </div>
+  </section>
+
+  <div id="trip-thumb-row" hidden></div>
+  <span id="trip-stage-status" hidden></span>
+
+  <script src="/js/pages/trip-detail.js?v=20260422-7" defer></script>
+</body>
+</html>

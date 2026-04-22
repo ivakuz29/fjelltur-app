@@ -1,51 +1,76 @@
 (function () {
+  const APP_VERSION = "20260422-6";
   const state = {
     turer: [],
     aktivTurId: null,
     lightboxBilder: [],
-    lightboxIndex: 0
+    lightboxIndex: 0,
   };
 
   const elements = {
-    navBruker: document.getElementById('nav-bruker'),
-    turForm: document.getElementById('tur-form'),
-    redigerId: document.getElementById('rediger-id'),
-    fjell: document.getElementById('fjell'),
-    dato: document.getElementById('dato'),
-    distanse: document.getElementById('distanse'),
-    hoyde: document.getElementById('hoyde'),
-    notat: document.getElementById('notat'),
-    skjemaTittel: document.getElementById('skjema-tittel'),
-    lagreBtn: document.getElementById('lagre-btn'),
-    avbrytBtn: document.getElementById('avbryt-btn'),
-    skjemaMelding: document.getElementById('skjema-melding'),
-    bildeSeksjon: document.getElementById('bilde-seksjon'),
-    eksisterendeBilder: document.getElementById('eksisterende-bilder'),
-    bildeInput: document.getElementById('bilde-input'),
-    lastOppBtn: document.getElementById('last-opp-btn'),
-    dropZone: document.getElementById('drop-zone'),
-    dropCount: document.getElementById('drop-count'),
-    turListe: document.getElementById('tur-liste'),
-    turCount: document.getElementById('tur-count'),
-    lightbox: document.getElementById('lightbox'),
-    lightboxBilde: document.getElementById('lightbox-bilde'),
-    lightboxPrev: document.getElementById('lightbox-prev'),
-    lightboxNext: document.getElementById('lightbox-next'),
-    lightboxCounter: document.getElementById('lightbox-counter'),
-    logoutBtn: document.getElementById('logout-btn')
+    navBruker: document.getElementById("nav-bruker"),
+    turForm: document.getElementById("tur-form"),
+    redigerId: document.getElementById("rediger-id"),
+    fjell: document.getElementById("fjell"),
+    dato: document.getElementById("dato"),
+    distanse: document.getElementById("distanse"),
+    hoyde: document.getElementById("hoyde"),
+    notat: document.getElementById("notat"),
+    skjemaTittel: document.getElementById("skjema-tittel"),
+    lagreBtn: document.getElementById("lagre-btn"),
+    avbrytBtn: document.getElementById("avbryt-btn"),
+    skjemaMelding: document.getElementById("skjema-melding"),
+    bildeSeksjon: document.getElementById("bilde-seksjon"),
+    eksisterendeBilder: document.getElementById("eksisterende-bilder"),
+    bildeInput: document.getElementById("bilde-input"),
+    lastOppBtn: document.getElementById("last-opp-btn"),
+    dropZone: document.getElementById("drop-zone"),
+    dropCount: document.getElementById("drop-count"),
+    turListe: document.getElementById("tur-liste"),
+    turCount: document.getElementById("tur-count"),
+    lightbox: document.getElementById("lightbox"),
+    lightboxBilde: document.getElementById("lightbox-bilde"),
+    lightboxPrev: document.getElementById("lightbox-prev"),
+    lightboxNext: document.getElementById("lightbox-next"),
+    lightboxCounter: document.getElementById("lightbox-counter"),
+    logoutBtn: document.getElementById("logout-btn"),
   };
 
   if (!elements.turForm) {
     return;
   }
 
+  const DEBUG = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+
   function escapeHtml(value) {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function logDebug(message, details) {
+    if (!DEBUG) {
+      return;
+    }
+
+    if (details === undefined) {
+      console.debug("[trips]", message);
+      return;
+    }
+
+    console.debug("[trips]", message, details);
+  }
+
+  function logError(message, details) {
+    if (details === undefined) {
+      console.error("[trips]", message);
+      return;
+    }
+
+    console.error("[trips]", message, details);
   }
 
   function fjellSvg(hoyde) {
@@ -58,25 +83,107 @@
     const r2 = Math.round(topY + span * 0.48);
     const r3 = Math.round(topY + span * 0.37);
 
-    return `<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">` +
+    return (
+      `<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">` +
       `<rect width="400" height="240" fill="#e4eef9"/>` +
       `<polygon points="0,240 80,${s1} 155,${r1} 235,${topY} 315,${s2} 365,${r2} 400,${r3} 400,240" fill="#c8d8ec" opacity="0.8"/>` +
       `<polygon points="210,240 235,${topY} 315,${s2} 365,${r2} 400,${r3} 400,240" fill="#bed0e8" opacity="0.55"/>` +
       `<polygon points="0,240 80,${s1} 160,240" fill="#d4e4f4" opacity="0.45"/>` +
-      `</svg>`;
+      `</svg>`
+    );
   }
 
   function getTurById(id) {
     return state.turer.find((tur) => Number(tur.id) === Number(id));
   }
 
+  function getTurDetaljUrl(id) {
+    return `/turer/${id}`;
+  }
+
+  async function lesJson(svar) {
+    const data = await svar.json().catch(() => null);
+    if (!svar.ok || !data) {
+      logError("Ugyldig svar fra serveren", {
+        url: svar.url,
+        status: svar.status,
+        statusText: svar.statusText,
+      });
+      throw new Error("Ugyldig svar fra serveren.");
+    }
+
+    if (data.ok === false) {
+      logError("API returnerte feil", {
+        url: svar.url,
+        status: svar.status,
+        data,
+      });
+      throw new Error(data.melding || "Noe gikk galt.");
+    }
+
+    logDebug("API-svar mottatt", {
+      url: svar.url,
+      status: svar.status,
+      data,
+    });
+
+    return data;
+  }
+
+  function parseOptionalTall(rawValue, feltLabel, options) {
+    const raw = String(rawValue ?? "").trim();
+    if (!raw) {
+      if (options.required) {
+        throw new Error(`${feltLabel} er påkrevd.`);
+      }
+
+      return "";
+    }
+
+    const normalized = raw.toLowerCase().replace(",", ".").replace(/\s+/g, "");
+
+    const units = (options.units || []).map((unit) =>
+      unit.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+    );
+    const unitSuffix = units.length ? `(?:${units.join("|")})?` : "";
+    const numberPattern = options.integer ? "(\\d+)" : "(\\d+(?:\\.\\d+)?)";
+    const match = normalized.match(
+      new RegExp(`^${numberPattern}${unitSuffix}$`),
+    );
+
+    if (!match) {
+      throw new Error(
+        `${feltLabel} m\u00E5 v\u00E6re et tall${options.example ? `, f.eks. ${options.example}` : ""}.`,
+      );
+    }
+
+    const verdi = Number(match[1]);
+    if (!Number.isFinite(verdi) || verdi < 0) {
+      throw new Error(`${feltLabel} m\u00E5 v\u00E6re 0 eller mer.`);
+    }
+
+    if (options.integer && !Number.isInteger(verdi)) {
+      throw new Error(`${feltLabel} m\u00E5 v\u00E6re et helt tall.`);
+    }
+
+    return String(verdi);
+  }
+
   function getCurrentFormData() {
     return {
       fjell: elements.fjell.value,
       dato: elements.dato.value,
-      distanse: elements.distanse.value,
-      hoyde: elements.hoyde.value,
-      notat: elements.notat.value
+      distanse: parseOptionalTall(elements.distanse.value, "Distanse", {
+        units: ["km"],
+        example: "12,5 km",
+      }),
+      hoyde: parseOptionalTall(elements.hoyde.value, "H\u00F8yde", {
+        required: true,
+        integer: true,
+        units: ["m", "moh"],
+        example: "2469 moh",
+      }),
+      notat: elements.notat.value,
     };
   }
 
@@ -85,25 +192,25 @@
     elements.redigerId.value = tur.id;
     elements.fjell.value = tur.fjell;
     elements.dato.value = tur.dato;
-    elements.distanse.value = tur.distanse || '';
-    elements.hoyde.value = tur.hoyde || '';
-    elements.notat.value = tur.notat || '';
-    elements.skjemaTittel.textContent = 'Rediger tur';
-    elements.lagreBtn.textContent = 'Oppdater';
-    elements.avbrytBtn.style.display = 'inline-block';
+    elements.distanse.value = tur.distanse || "";
+    elements.hoyde.value = tur.hoyde || "";
+    elements.notat.value = tur.notat || "";
+    elements.skjemaTittel.textContent = "Rediger tur";
+    elements.lagreBtn.textContent = "Oppdater";
+    elements.avbrytBtn.style.display = "inline-block";
     oppdaterBildeSeksjon(tur.bilder || []);
   }
 
   function resetForm() {
     state.aktivTurId = null;
     elements.turForm.reset();
-    elements.redigerId.value = '';
-    elements.skjemaTittel.textContent = 'Ny tur';
-    elements.lagreBtn.textContent = 'Lagre';
-    elements.avbrytBtn.style.display = 'none';
-    elements.hoyde.value = '';
-    elements.bildeInput.value = '';
-    elements.eksisterendeBilder.innerHTML = '';
+    elements.redigerId.value = "";
+    elements.skjemaTittel.textContent = "Ny tur";
+    elements.lagreBtn.textContent = "Lagre";
+    elements.avbrytBtn.style.display = "none";
+    elements.hoyde.value = "";
+    elements.bildeInput.value = "";
+    elements.eksisterendeBilder.innerHTML = "";
     oppdaterDropCount(0);
   }
 
@@ -112,26 +219,30 @@
     elements.skjemaMelding.className = `skjema-melding ${type}`;
     window.clearTimeout(elements.skjemaMelding._timer);
     elements.skjemaMelding._timer = window.setTimeout(() => {
-      elements.skjemaMelding.textContent = '';
-      elements.skjemaMelding.className = 'skjema-melding';
+      elements.skjemaMelding.textContent = "";
+      elements.skjemaMelding.className = "skjema-melding";
     }, 3000);
   }
 
   function oppdaterDropCount(count) {
-    elements.dropCount.textContent = count > 0
-      ? `${count}${count === 1 ? ' bilde valgt' : ' bilder valgt'}`
-      : '';
+    elements.dropCount.textContent =
+      count > 0
+        ? `${count}${count === 1 ? " bilde valgt" : " bilder valgt"}`
+        : "";
   }
 
   function oppdaterBildeSeksjon(bilder) {
-    elements.bildeSeksjon.style.display = 'block';
+    elements.bildeSeksjon.style.display = "block";
 
     if (!bilder.length) {
-      elements.eksisterendeBilder.innerHTML = '<p class="ingen-bilder">Ingen bilder enn&#229;</p>';
+      elements.eksisterendeBilder.innerHTML =
+        '<p class="ingen-bilder">Ingen bilder enn&#229;</p>';
       return;
     }
 
-    elements.eksisterendeBilder.innerHTML = bilder.map((bilde) => `
+    elements.eksisterendeBilder.innerHTML = bilder
+      .map(
+        (bilde) => `
       <div class="bilde-thumbnail">
         <img
           src="/uploads/${bilde.filnavn}"
@@ -147,12 +258,14 @@
           title="Slett bilde"
         >&#215;</button>
       </div>
-    `).join('');
+    `,
+      )
+      .join("");
   }
 
   function renderTrips() {
     if (!state.turer.length) {
-      elements.turCount.textContent = '';
+      elements.turCount.textContent = "";
       elements.turListe.innerHTML = `
         <div class="empty-state">
           <span class="empty-icon">&#8743;</span>
@@ -162,48 +275,52 @@
       return;
     }
 
-    elements.turCount.textContent = `${state.turer.length} ${state.turer.length === 1 ? 'tur' : 'turer'}`;
+    elements.turCount.textContent = `${state.turer.length} ${state.turer.length === 1 ? "tur" : "turer"}`;
 
-    elements.turListe.innerHTML = state.turer.map((tur, index) => {
-      const nr = String(state.turer.length - index).padStart(3, '0');
-      const bilder = tur.bilder || [];
-      const cover = bilder[0];
-      const extra = bilder.length - 1;
-      const hoydeTag = tur.hoyde ? `<span class="tur-hero-hoyde">&#9650; ${tur.hoyde} moh</span>` : '';
-      const countBadge = extra > 0 ? `<span class="tur-img-count">+${extra}</span>` : '';
-      const hero = cover
-        ? `
-          <button type="button" class="tur-hero" data-action="open-trip-images" data-tur-id="${tur.id}">
+    elements.turListe.innerHTML = state.turer
+      .map((tur, index) => {
+        const nr = String(state.turer.length - index).padStart(3, "0");
+        const bilder = tur.bilder || [];
+        const cover = bilder[0];
+        const extra = bilder.length - 1;
+        const hoydeTag = tur.hoyde
+          ? `<span class="tur-hero-hoyde">&#9650; ${tur.hoyde} moh</span>`
+          : "";
+        const countBadge =
+          extra > 0 ? `<span class="tur-img-count">+${extra}</span>` : "";
+        const hero = cover
+          ? `
+          <a href="${getTurDetaljUrl(tur.id)}" class="tur-hero tur-hero-link" aria-label="Aapne ${escapeHtml(tur.fjell)}">
             <img src="/uploads/${cover.filnavn}" alt="${escapeHtml(tur.fjell)}">
             <div class="tur-hero-overlay">
               <span class="tur-hero-num">#${nr}</span>
               <div class="tur-hero-right">${hoydeTag}${countBadge}</div>
             </div>
-          </button>
+          </a>
         `
-        : `
-          <div class="tur-hero">
+          : `
+          <a href="${getTurDetaljUrl(tur.id)}" class="tur-hero tur-hero-link" aria-label="Aapne ${escapeHtml(tur.fjell)}">
             ${fjellSvg(tur.hoyde)}
             <div class="tur-hero-overlay">
               <span class="tur-hero-num">#${nr}</span>
               <div class="tur-hero-right">${hoydeTag}${countBadge}</div>
             </div>
-          </div>
+          </a>
         `;
 
-      return `
-        <div class="tur-entry">
+        return `
+        <div class="tur-entry" data-tur-id="${tur.id}">
           ${hero}
           <div class="tur-body">
             <div class="tur-entry-top">
               <span class="tur-date">${escapeHtml(tur.dato)}</span>
             </div>
-            <h3 class="tur-name">${escapeHtml(tur.fjell)}</h3>
+            <h3 class="tur-name"><a href="${getTurDetaljUrl(tur.id)}" class="tur-title-link">${escapeHtml(tur.fjell)}</a></h3>
             <div class="tur-meta">
-              ${tur.distanse ? `<span class="tur-distance">${escapeHtml(tur.distanse)} km</span>` : ''}
-              ${tur.hoyde ? `<span class="tur-hoyde">${escapeHtml(tur.hoyde)} moh</span>` : ''}
+              ${tur.distanse ? `<span class="tur-distance">${escapeHtml(tur.distanse)} km</span>` : ""}
+              ${tur.hoyde ? `<span class="tur-hoyde">${escapeHtml(tur.hoyde)} moh</span>` : ""}
             </div>
-            ${tur.notat ? `<p class="tur-note">${escapeHtml(tur.notat)}</p>` : ''}
+            ${tur.notat ? `<p class="tur-note">${escapeHtml(tur.notat)}</p>` : ""}
             <div class="tur-actions">
               <button type="button" class="btn btn-edit" data-action="edit-trip" data-tur-id="${tur.id}">Rediger</button>
               <button type="button" class="btn btn-danger" data-action="delete-trip" data-tur-id="${tur.id}">Slett</button>
@@ -211,12 +328,13 @@
           </div>
         </div>
       `;
-    }).join('');
+      })
+      .join("");
   }
 
   async function lastTurer() {
-    const svar = await fetch('/api/turer');
-    state.turer = await svar.json();
+    const svar = await fetch("/api/turer");
+    state.turer = await lesJson(svar);
     renderTrips();
 
     if (state.aktivTurId !== null) {
@@ -227,100 +345,154 @@
     }
   }
 
-  async function lagreTur(event) {
-    event.preventDefault();
-
-    const id = elements.redigerId.value;
-    const url = id ? `/api/turer/${id}` : '/api/turer';
-    const method = id ? 'PUT' : 'POST';
-    const svar = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(getCurrentFormData())
-    });
-
-    const result = await svar.json();
-    if (!result.ok) {
-      visMelding(result.melding || 'Noe gikk galt.', 'feil');
-      return;
-    }
-
-    if (!id) {
-      state.aktivTurId = result.id;
-
-      if (elements.bildeInput.files.length) {
-        const formData = new FormData();
-        Array.from(elements.bildeInput.files).forEach((fil) => {
-          formData.append('bilder', fil);
-        });
-
-        await fetch(`/api/turer/${state.aktivTurId}/bilder`, {
-          method: 'POST',
-          body: formData
-        });
-
-        elements.bildeInput.value = '';
-      }
-
-      await lastTurer();
-      const tur = getTurById(result.id);
-      if (tur) {
-        setEditMode(tur);
-      }
-
-      return;
-    }
-
-    await lastTurer();
-    visMelding('Lagret', 'ok');
-  }
-
-  async function lastOppBilder() {
-    if (!state.aktivTurId || !elements.bildeInput.files.length) {
-      return;
+  async function lastOppValgteBilder(turId, visStatus) {
+    if (!turId || !elements.bildeInput.files.length) {
+      return false;
     }
 
     const formData = new FormData();
     Array.from(elements.bildeInput.files).forEach((fil) => {
-      formData.append('bilder', fil);
+      formData.append("bilder", fil);
     });
 
-    elements.lastOppBtn.disabled = true;
-    elements.lastOppBtn.textContent = 'Laster opp...';
+    if (visStatus) {
+      elements.lastOppBtn.disabled = true;
+      elements.lastOppBtn.textContent = "Laster opp...";
+    }
 
-    await fetch(`/api/turer/${state.aktivTurId}/bilder`, {
-      method: 'POST',
-      body: formData
-    });
+    try {
+      logDebug("Laster opp bilder", {
+        turId,
+        fileCount: elements.bildeInput.files.length,
+        files: Array.from(elements.bildeInput.files).map((file) => ({
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        })),
+      });
+      const svar = await fetch(`/api/turer/${turId}/bilder`, {
+        method: "POST",
+        body: formData,
+      });
+      await lesJson(svar);
+      elements.bildeInput.value = "";
+      oppdaterDropCount(0);
+      return true;
+    } finally {
+      if (visStatus) {
+        elements.lastOppBtn.disabled = false;
+        elements.lastOppBtn.textContent = "Last opp";
+      }
+    }
+  }
 
-    elements.bildeInput.value = '';
-    elements.lastOppBtn.disabled = false;
-    elements.lastOppBtn.textContent = 'Last opp';
-    oppdaterDropCount(0);
+  async function lagreTur(event) {
+    event.preventDefault();
 
-    await lastTurer();
+    try {
+      const id = elements.redigerId.value;
+      const formData = getCurrentFormData();
+      logDebug("Sender tur til lagring", {
+        id: id || null,
+        mode: id ? "edit" : "create",
+        raw: {
+          fjell: elements.fjell.value,
+          dato: elements.dato.value,
+          distanse: elements.distanse.value,
+          hoyde: elements.hoyde.value,
+          notat: elements.notat.value,
+        },
+        parsed: formData,
+      });
+      const url = id ? `/api/turer/${id}` : "/api/turer";
+      const method = id ? "PUT" : "POST";
+      const svar = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const result = await lesJson(svar);
+      const turId = id || result.id;
+
+      if (!id) {
+        state.aktivTurId = turId;
+      }
+
+      await lastOppValgteBilder(turId, false);
+      await lastTurer();
+
+      if (!id) {
+        const tur = getTurById(result.id);
+        if (tur) {
+          setEditMode(tur);
+        }
+
+        return;
+      }
+
+      visMelding("Lagret", "ok");
+    } catch (error) {
+      logError("Kunne ikke lagre tur", {
+        message: error.message,
+        raw: {
+          fjell: elements.fjell.value,
+          dato: elements.dato.value,
+          distanse: elements.distanse.value,
+          hoyde: elements.hoyde.value,
+          notat: elements.notat.value,
+        },
+      });
+      visMelding(error.message || "Noe gikk galt.", "feil");
+    }
+  }
+
+  async function lastOppBilder() {
+    if (!elements.bildeInput.files.length) {
+      visMelding("Velg minst ett bilde f\u00F8rst.", "feil");
+      return;
+    }
+
+    if (!state.aktivTurId) {
+      visMelding(
+        "Lagre turen f\u00F8rst, s\u00E5 kan du laste opp bilder.",
+        "feil",
+      );
+      return;
+    }
+
+    try {
+      await lastOppValgteBilder(state.aktivTurId, true);
+      await lastTurer();
+      visMelding("Bilder lastet opp.", "ok");
+    } catch (error) {
+      logError("Kunne ikke laste opp bilder", {
+        message: error.message,
+        turId: state.aktivTurId,
+      });
+      visMelding(error.message || "Kunne ikke laste opp bilder.", "feil");
+    }
   }
 
   async function slettBilde(bildeId) {
-    if (!state.aktivTurId || !window.confirm('Slett dette bildet?')) {
+    if (!state.aktivTurId || !window.confirm("Slett dette bildet?")) {
       return;
     }
 
     await fetch(`/api/turer/${state.aktivTurId}/bilder/${bildeId}`, {
-      method: 'DELETE'
+      method: "DELETE",
     });
 
     await lastTurer();
   }
 
   async function slettTur(id) {
-    if (!window.confirm('Slett denne turen?')) {
+    if (!window.confirm("Slett denne turen?")) {
       return;
     }
 
-    const svar = await fetch(`/api/turer/${id}`, { method: 'DELETE' });
-    const data = await svar.json();
-    if (!data.ok) {
+    const svar = await fetch(`/api/turer/${id}`, { method: "DELETE" });
+    const data = await lesJson(svar).catch(() => null);
+    if (!data) {
       return;
     }
 
@@ -335,7 +507,7 @@
     state.lightboxBilder = Array.isArray(bilder) ? bilder : [bilder];
     state.lightboxIndex = index || 0;
     visLightboxBilde();
-    elements.lightbox.style.display = 'flex';
+    elements.lightbox.style.display = "flex";
   }
 
   function visLightboxBilde() {
@@ -345,11 +517,11 @@
 
     elements.lightboxBilde.src = state.lightboxBilder[state.lightboxIndex];
     const multi = state.lightboxBilder.length > 1;
-    elements.lightboxPrev.style.display = multi ? 'flex' : 'none';
-    elements.lightboxNext.style.display = multi ? 'flex' : 'none';
+    elements.lightboxPrev.style.display = multi ? "flex" : "none";
+    elements.lightboxNext.style.display = multi ? "flex" : "none";
     elements.lightboxCounter.textContent = multi
       ? `${state.lightboxIndex + 1} / ${state.lightboxBilder.length}`
-      : '';
+      : "";
   }
 
   function lightboxNav(direction) {
@@ -357,91 +529,92 @@
       return;
     }
 
-    state.lightboxIndex = (state.lightboxIndex + direction + state.lightboxBilder.length) % state.lightboxBilder.length;
+    state.lightboxIndex =
+      (state.lightboxIndex + direction + state.lightboxBilder.length) %
+      state.lightboxBilder.length;
     visLightboxBilde();
   }
 
   function lukkLightbox() {
-    elements.lightbox.style.display = 'none';
-    elements.lightboxBilde.src = '';
+    elements.lightbox.style.display = "none";
+    elements.lightboxBilde.src = "";
     state.lightboxBilder = [];
     state.lightboxIndex = 0;
   }
 
   async function loggUt() {
-    await fetch('/api/logout', { method: 'POST' });
-    window.location.href = '/';
+    await fetch("/api/logout", { method: "POST" });
+    window.location.href = "/";
   }
 
   function handleTripListClick(event) {
-    const actionEl = event.target.closest('[data-action]');
+    if (!event.target.closest("[data-action]")) {
+      const interactive = event.target.closest("a, button, input, textarea, label");
+      const entry = event.target.closest(".tur-entry[data-tur-id]");
+      if (entry && !interactive) {
+        window.location.href = getTurDetaljUrl(entry.dataset.turId);
+      }
+    }
+
+    const actionEl = event.target.closest("[data-action]");
     if (!actionEl) {
       return;
     }
 
     const { action, turId } = actionEl.dataset;
-    if (action === 'edit-trip') {
+    if (action === "edit-trip") {
       const tur = getTurById(turId);
       if (!tur) {
         return;
       }
 
       setEditMode(tur);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
-    if (action === 'delete-trip') {
+    if (action === "delete-trip") {
       slettTur(turId);
       return;
-    }
-
-    if (action === 'open-trip-images') {
-      const tur = getTurById(turId);
-      if (!tur) {
-        return;
-      }
-
-      aapneLightbox((tur.bilder || []).map((bilde) => `/uploads/${bilde.filnavn}`), 0);
     }
   }
 
   function handleImageGridClick(event) {
-    const actionEl = event.target.closest('[data-action]');
+    const actionEl = event.target.closest("[data-action]");
     if (!actionEl) {
       return;
     }
 
     const { action, src, bildeId } = actionEl.dataset;
-    if (action === 'open-image' && src) {
+    if (action === "open-image" && src) {
       aapneLightbox(src, 0);
       return;
     }
 
-    if (action === 'delete-image') {
+    if (action === "delete-image") {
       slettBilde(bildeId);
     }
   }
 
   function setupDragAndDrop() {
-    elements.dropZone.addEventListener('dragover', (event) => {
+    elements.dropZone.addEventListener("dragover", (event) => {
       event.preventDefault();
-      elements.dropZone.classList.add('drag-over');
+      elements.dropZone.classList.add("drag-over");
     });
 
-    elements.dropZone.addEventListener('dragleave', (event) => {
+    elements.dropZone.addEventListener("dragleave", (event) => {
       if (!elements.dropZone.contains(event.relatedTarget)) {
-        elements.dropZone.classList.remove('drag-over');
+        elements.dropZone.classList.remove("drag-over");
       }
     });
 
-    elements.dropZone.addEventListener('drop', (event) => {
+    elements.dropZone.addEventListener("drop", (event) => {
       event.preventDefault();
-      elements.dropZone.classList.remove('drag-over');
+      elements.dropZone.classList.remove("drag-over");
 
       const transfer = new DataTransfer();
       Array.from(event.dataTransfer.files).forEach((file) => {
-        if (file.type.startsWith('image/')) {
+        if (file.type.startsWith("image/")) {
           transfer.items.add(file);
         }
       });
@@ -450,37 +623,37 @@
       oppdaterDropCount(transfer.files.length);
     });
 
-    elements.bildeInput.addEventListener('change', () => {
+    elements.bildeInput.addEventListener("change", () => {
       oppdaterDropCount(elements.bildeInput.files.length);
     });
   }
 
   function setupEventListeners() {
-    elements.turForm.addEventListener('submit', lagreTur);
-    elements.avbrytBtn.addEventListener('click', resetForm);
-    elements.lastOppBtn.addEventListener('click', lastOppBilder);
-    elements.logoutBtn.addEventListener('click', loggUt);
-    elements.turListe.addEventListener('click', handleTripListClick);
-    elements.eksisterendeBilder.addEventListener('click', handleImageGridClick);
-    elements.lightbox.addEventListener('click', lukkLightbox);
-    elements.lightboxPrev.addEventListener('click', (event) => {
+    elements.turForm.addEventListener("submit", lagreTur);
+    elements.avbrytBtn.addEventListener("click", resetForm);
+    elements.lastOppBtn.addEventListener("click", lastOppBilder);
+    elements.logoutBtn.addEventListener("click", loggUt);
+    elements.turListe.addEventListener("click", handleTripListClick);
+    elements.eksisterendeBilder.addEventListener("click", handleImageGridClick);
+    elements.lightbox.addEventListener("click", lukkLightbox);
+    elements.lightboxPrev.addEventListener("click", (event) => {
       event.stopPropagation();
       lightboxNav(-1);
     });
-    elements.lightboxNext.addEventListener('click', (event) => {
+    elements.lightboxNext.addEventListener("click", (event) => {
       event.stopPropagation();
       lightboxNav(1);
     });
-    document.addEventListener('keydown', (event) => {
-      if (elements.lightbox.style.display !== 'flex') {
+    document.addEventListener("keydown", (event) => {
+      if (elements.lightbox.style.display !== "flex") {
         return;
       }
 
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         lukkLightbox();
-      } else if (event.key === 'ArrowRight') {
+      } else if (event.key === "ArrowRight") {
         lightboxNav(1);
-      } else if (event.key === 'ArrowLeft') {
+      } else if (event.key === "ArrowLeft") {
         lightboxNav(-1);
       }
     });
@@ -489,18 +662,22 @@
   }
 
   async function init() {
-    const svar = await fetch('/api/meg');
-    const data = await svar.json();
+    try {
+      console.info("[trips] frontend version", APP_VERSION);
+      const svar = await fetch("/api/meg");
+      const data = await lesJson(svar);
+      if (!data.bruker) {
+        window.location.href = "/";
+        return;
+      }
 
-    if (!data.ok) {
-      window.location.href = '/';
-      return;
+      elements.navBruker.textContent = data.bruker.brukernavn;
+      setupEventListeners();
+      await lastTurer();
+    } catch (_) {
+      window.location.href = "/";
     }
-
-    elements.navBruker.textContent = data.bruker.brukernavn;
-    setupEventListeners();
-    await lastTurer();
   }
 
   init();
-}());
+})();

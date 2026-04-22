@@ -25,6 +25,18 @@ db.exec(`
     filnavn TEXT NOT NULL,
     FOREIGN KEY (tur_id) REFERENCES fjellturer(id)
   );
+
+  CREATE TABLE IF NOT EXISTS tur_kommentarer (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tur_id INTEGER NOT NULL,
+    bruker_id INTEGER NOT NULL,
+    parent_id INTEGER,
+    innhold TEXT NOT NULL,
+    opprettet TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tur_id) REFERENCES fjellturer(id),
+    FOREIGN KEY (bruker_id) REFERENCES brukere(id),
+    FOREIGN KEY (parent_id) REFERENCES tur_kommentarer(id)
+  );
 `);
 
 // Migrasjon: legg til hoyde-kolonne hvis den ikke finnes
