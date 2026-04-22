@@ -6,7 +6,7 @@
   <title>Fjelltur &mdash; Turdetaljer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/css/style.css?v=20260422-8">
+  <link rel="stylesheet" href="/css/style.css?v=20260422-10">
 </head>
 <body>
   <header class="app-header">
@@ -35,6 +35,15 @@
       <h1 class="trip-title" id="trip-title"></h1>
       <div class="trip-stat-row" id="trip-stat-row"></div>
       <p class="trip-note-large" id="trip-note"></p>
+
+      <div class="trip-participants-section" id="trip-participants-section" hidden>
+        <p class="trip-participants-label">Deltakere</p>
+        <div id="trip-participant-list"></div>
+        <div class="participant-search" id="participant-search" hidden>
+          <input type="text" id="participant-input" placeholder="S&oslash;k etter bruker..." autocomplete="off">
+          <div class="participant-results" id="participant-results"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -46,6 +55,10 @@
           <h2>Kommentarer</h2>
         </div>
         <span class="comment-count" id="comment-count"></span>
+      </div>
+
+      <div class="comment-private-notice" id="comment-private-notice" hidden>
+        <p>Kommentarer er kun tillatt p&aring; offentlige turer.</p>
       </div>
 
       <form id="comment-form" class="comment-form">
@@ -64,6 +77,6 @@
   <div id="trip-thumb-row" hidden></div>
   <span id="trip-stage-status" hidden></span>
 
-  <script src="/js/pages/trip-detail.js?v=20260422-7" defer></script>
+  <script src="/js/pages/trip-detail.js?v=20260422-9" defer></script>
 </body>
 </html>

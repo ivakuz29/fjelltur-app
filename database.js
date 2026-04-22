@@ -37,11 +37,27 @@ db.exec(`
     FOREIGN KEY (bruker_id) REFERENCES brukere(id),
     FOREIGN KEY (parent_id) REFERENCES tur_kommentarer(id)
   );
+
+  CREATE TABLE IF NOT EXISTS tur_deltakere (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tur_id INTEGER NOT NULL,
+    bruker_id INTEGER NOT NULL,
+    lagt_til_av_id INTEGER NOT NULL,
+    FOREIGN KEY (tur_id) REFERENCES fjellturer(id),
+    FOREIGN KEY (bruker_id) REFERENCES brukere(id),
+    FOREIGN KEY (lagt_til_av_id) REFERENCES brukere(id),
+    UNIQUE(tur_id, bruker_id)
+  );
 `);
 
 // Migrasjon: legg til hoyde-kolonne hvis den ikke finnes
 try {
   db.exec('ALTER TABLE fjellturer ADD COLUMN hoyde INTEGER');
+} catch (_) {}
+
+// Migrasjon: legg til offentlig-kolonne hvis den ikke finnes
+try {
+  db.exec('ALTER TABLE fjellturer ADD COLUMN offentlig INTEGER NOT NULL DEFAULT 0');
 } catch (_) {}
 
 module.exports = db;

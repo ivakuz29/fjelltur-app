@@ -6,7 +6,7 @@
   <title>Fjelltur &mdash; Mine turer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/css/style.css?v=20260422-8">
+  <link rel="stylesheet" href="/css/style.css?v=20260422-10">
 </head>
 <body>
 
@@ -17,6 +17,8 @@
     <span class="lightbox-counter" id="lightbox-counter"></span>
   </div>
 
+  <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
   <header class="app-header">
     <div class="app-brand">Fjell<em>tur</em></div>
     <div class="app-user">
@@ -26,8 +28,11 @@
   </header>
 
   <div class="app-body">
-    <aside class="form-sidebar">
-      <h2 class="sidebar-title" id="skjema-tittel">Ny tur</h2>
+    <aside class="form-sidebar" id="form-sidebar">
+      <div class="sidebar-head">
+        <h2 class="sidebar-title" id="skjema-tittel">Ny tur</h2>
+        <button type="button" class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Lukk">&#215;</button>
+      </div>
 
       <div id="bilde-seksjon">
         <p class="bilde-seksjon-tittel">Bilder</p>
@@ -75,6 +80,22 @@
           <textarea id="notat" placeholder="Skriv noe om turen..."></textarea>
         </div>
 
+        <div class="field field-toggle">
+          <label class="toggle-label">
+            <input type="checkbox" id="offentlig" class="toggle-input">
+            <span class="toggle-track"></span>
+            <span class="toggle-text">Offentlig tur</span>
+          </label>
+          <p class="field-hint">Offentlige turer kan f&aring; kommentarer fra andre.</p>
+        </div>
+
+        <div class="field">
+          <label>Deltakere</label>
+          <div id="staged-deltakere" class="staged-deltakere"></div>
+          <input type="text" id="deltaker-input" class="deltaker-search-input" placeholder="S&oslash;k etter bruker..." autocomplete="off">
+          <div id="deltaker-resultater" class="participant-results"></div>
+        </div>
+
         <div class="form-actions">
           <button type="submit" id="lagre-btn" class="btn btn-primary">Lagre</button>
           <button type="button" id="avbryt-btn" class="btn btn-ghost" style="display:none">Avbryt</button>
@@ -85,14 +106,17 @@
 
     <section class="log-panel">
       <div class="log-header">
-        <h1>Mine turer</h1>
-        <span class="log-count" id="tur-count"></span>
+        <div class="log-header-left">
+          <h1>Mine turer</h1>
+          <span class="log-count" id="tur-count"></span>
+        </div>
+        <button type="button" class="btn btn-primary btn-ny-tur" id="ny-tur-btn">+ Ny tur</button>
       </div>
 
       <div id="tur-liste"></div>
     </section>
   </div>
 
-  <script src="/js/pages/trips.js?v=20260422-6" defer></script>
+  <script src="/js/pages/trips.js?v=20260422-10" defer></script>
 </body>
 </html>

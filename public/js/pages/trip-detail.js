@@ -1,5 +1,5 @@
 (function () {
-  const APP_VERSION = "20260422-7";
+  const APP_VERSION = "20260422-9";
   const EMPTY_STAGE =
     "data:image/svg+xml;charset=UTF-8," +
     encodeURIComponent(
@@ -27,6 +27,7 @@
     carouselTimer: null,
     replyTargetId: null,
     kbIndex: 0,
+    participantSearchTimer: null,
   };
 
   const elements = {
@@ -50,6 +51,12 @@
     commentInput: document.getElementById("comment-input"),
     commentMessage: document.getElementById("comment-message"),
     commentList: document.getElementById("comment-list"),
+    commentPrivateNotice: document.getElementById("comment-private-notice"),
+    tripParticipantsSection: document.getElementById("trip-participants-section"),
+    tripParticipantList: document.getElementById("trip-participant-list"),
+    participantSearch: document.getElementById("participant-search"),
+    participantInput: document.getElementById("participant-input"),
+    participantResults: document.getElementById("participant-results"),
   };
 
   if (!elements.tripLoading) {
@@ -140,6 +147,38 @@
       elements.commentMessage.textContent = "";
       elements.commentMessage.className = "skjema-melding";
     }, 3000);
+  }
+
+  function renderParticipants(deltakere, isEier) {
+    const section = elements.tripParticipantsSection;
+    if (!section) return;
+
+    if (!deltakere.length && !isEier) {
+      section.hidden = true;
+      return;
+    }
+
+    section.hidden = false;
+    const list = elements.tripParticipantList;
+
+    if (!deltakere.length) {
+      list.innerHTML = '<p class="no-participants">Ingen deltakere lagt til ennå.</p>';
+    } else {
+      list.innerHTML = deltakere
+        .map(
+          (d) => `
+            <span class="participant-chip">
+              ${escapeHtml(d.brukernavn)}
+              ${isEier ? `<button type="button" class="participant-remove" data-action="remove-participant" data-bruker-id="${d.id}" title="Fjern">&times;</button>` : ""}
+            </span>
+          `,
+        )
+        .join("");
+    }
+
+    if (elements.participantSearch) {
+      elements.participantSearch.hidden = !isEier;
+    }
   }
 
   function renderStats(trip) {
@@ -257,8 +296,17 @@
     elements.tripTitle.textContent = trip.fjell;
     elements.tripNote.textContent = trip.notat || "Ingen notat lagt til for denne turen enn\u00e5.";
     renderStats(trip);
+    renderParticipants(trip.deltakere || [], !!trip.eier);
     updateStageImage();
     startCarousel();
+
+    const isPublic = !!trip.offentlig;
+    if (elements.commentPrivateNotice) {
+      elements.commentPrivateNotice.hidden = isPublic;
+    }
+    if (elements.commentForm) {
+      elements.commentForm.hidden = !isPublic;
+    }
 
     elements.tripLoading.hidden = true;
     elements.tripHeroPanel.hidden = false;
@@ -408,6 +456,67 @@
     }
   }
 
+  async function handleParticipantRemove(brukerId) {
+    if (!state.trip) return;
+    const response = await fetch(
+      `/api/turer/${state.trip.id}/deltakere/${brukerId}`,
+      { method: "DELETE" },
+    );
+    const data = await lesJson(response);
+    state.trip.deltakere = data.deltakere || [];
+    renderParticipants(state.trip.deltakere, !!state.trip.eier);
+  }
+
+  function handleParticipantListClick(event) {
+    const btn = event.target.closest('[data-action="remove-participant"]');
+    if (!btn) return;
+    handleParticipantRemove(Number(btn.dataset.brukerId));
+  }
+
+  async function handleParticipantSearch(query) {
+    if (!elements.participantResults) return;
+    if (!query || query.length < 2) {
+      elements.participantResults.innerHTML = "";
+      return;
+    }
+
+    const response = await fetch(
+      `/api/brukere/sok?q=${encodeURIComponent(query)}`,
+    );
+    const data = await response.json().catch(() => ({ brukere: [] }));
+    const existing = new Set(
+      (state.trip.deltakere || []).map((d) => d.id),
+    );
+
+    const treff = (data.brukere || []).filter((b) => !existing.has(b.id));
+    if (!treff.length) {
+      elements.participantResults.innerHTML =
+        '<p class="participant-no-results">Ingen treff.</p>';
+      return;
+    }
+
+    elements.participantResults.innerHTML = treff
+      .map(
+        (b) =>
+          `<button type="button" class="participant-result-item" data-action="add-participant" data-bruker-id="${b.id}">${escapeHtml(b.brukernavn)}</button>`,
+      )
+      .join("");
+  }
+
+  async function handleParticipantAdd(brukerId) {
+    if (!state.trip) return;
+    const response = await fetch(`/api/turer/${state.trip.id}/deltakere`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ brukerId }),
+    });
+    const data = await lesJson(response);
+    state.trip.deltakere = data.deltakere || [];
+    renderParticipants(state.trip.deltakere, !!state.trip.eier);
+    if (elements.participantInput) elements.participantInput.value = "";
+    if (elements.participantResults) elements.participantResults.innerHTML = "";
+  }
+
   function bindEvents() {
     elements.logoutBtn.addEventListener("click", loggUt);
     elements.tripPrev.addEventListener("click", () => {
@@ -422,6 +531,31 @@
     elements.commentForm.addEventListener("submit", handleCommentSubmit);
     elements.commentList.addEventListener("click", handleCommentListClick);
     elements.commentList.addEventListener("submit", handleReplySubmit);
+
+    if (elements.tripParticipantList) {
+      elements.tripParticipantList.addEventListener(
+        "click",
+        handleParticipantListClick,
+      );
+    }
+
+    if (elements.participantInput) {
+      elements.participantInput.addEventListener("input", (e) => {
+        window.clearTimeout(state.participantSearchTimer);
+        state.participantSearchTimer = window.setTimeout(
+          () => handleParticipantSearch(e.target.value.trim()),
+          300,
+        );
+      });
+    }
+
+    if (elements.participantResults) {
+      elements.participantResults.addEventListener("click", (e) => {
+        const btn = e.target.closest('[data-action="add-participant"]');
+        if (btn) handleParticipantAdd(Number(btn.dataset.brukerId));
+      });
+    }
+
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         stopCarousel();

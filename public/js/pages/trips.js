@@ -1,10 +1,13 @@
 (function () {
-  const APP_VERSION = "20260422-6";
+  const APP_VERSION = "20260422-10";
   const state = {
     turer: [],
+    taggedeTurer: [],
     aktivTurId: null,
     lightboxBilder: [],
     lightboxIndex: 0,
+    stagedParticipants: [],
+    deltakersokTimer: null,
   };
 
   const elements = {
@@ -34,6 +37,14 @@
     lightboxNext: document.getElementById("lightbox-next"),
     lightboxCounter: document.getElementById("lightbox-counter"),
     logoutBtn: document.getElementById("logout-btn"),
+    offentlig: document.getElementById("offentlig"),
+    nyTurBtn: document.getElementById("ny-tur-btn"),
+    sidebarCloseBtn: document.getElementById("sidebar-close-btn"),
+    sidebarBackdrop: document.getElementById("sidebar-backdrop"),
+    formSidebar: document.getElementById("form-sidebar"),
+    stagedDeltakere: document.getElementById("staged-deltakere"),
+    deltakerInput: document.getElementById("deltaker-input"),
+    deltakerResultater: document.getElementById("deltaker-resultater"),
   };
 
   if (!elements.turForm) {
@@ -184,6 +195,7 @@
         example: "2469 moh",
       }),
       notat: elements.notat.value,
+      offentlig: elements.offentlig ? elements.offentlig.checked : false,
     };
   }
 
@@ -195,6 +207,9 @@
     elements.distanse.value = tur.distanse || "";
     elements.hoyde.value = tur.hoyde || "";
     elements.notat.value = tur.notat || "";
+    if (elements.offentlig) elements.offentlig.checked = !!tur.offentlig;
+    state.stagedParticipants = [];
+    renderStagedParticipants();
     elements.skjemaTittel.textContent = "Rediger tur";
     elements.lagreBtn.textContent = "Oppdater";
     elements.avbrytBtn.style.display = "inline-block";
@@ -209,6 +224,11 @@
     elements.lagreBtn.textContent = "Lagre";
     elements.avbrytBtn.style.display = "none";
     elements.hoyde.value = "";
+    if (elements.offentlig) elements.offentlig.checked = false;
+    state.stagedParticipants = [];
+    renderStagedParticipants();
+    if (elements.deltakerInput) elements.deltakerInput.value = "";
+    if (elements.deltakerResultater) elements.deltakerResultater.innerHTML = "";
     elements.bildeInput.value = "";
     elements.eksisterendeBilder.innerHTML = "";
     oppdaterDropCount(0);
@@ -263,8 +283,139 @@
       .join("");
   }
 
+  function aapneSidebar() {
+    document.body.classList.add("sidebar-open");
+    if (elements.formSidebar) {
+      elements.formSidebar.querySelector("input, textarea")?.focus();
+    }
+  }
+
+  function lukkSidebar() {
+    document.body.classList.remove("sidebar-open");
+  }
+
+  function renderStagedParticipants() {
+    if (!elements.stagedDeltakere) return;
+    if (!state.stagedParticipants.length) {
+      elements.stagedDeltakere.innerHTML = "";
+      return;
+    }
+
+    elements.stagedDeltakere.innerHTML = state.stagedParticipants
+      .map(
+        (d) =>
+          `<span class="staged-chip">
+            ${escapeHtml(d.brukernavn)}
+            <button type="button" class="staged-chip-remove" data-action="unstage-deltaker" data-bruker-id="${d.id}" title="Fjern">&times;</button>
+          </span>`,
+      )
+      .join("");
+  }
+
+  async function sokEtterDeltaker(query) {
+    if (!elements.deltakerResultater) return;
+    if (!query || query.length < 2) {
+      elements.deltakerResultater.innerHTML = "";
+      return;
+    }
+
+    const response = await fetch(
+      `/api/brukere/sok?q=${encodeURIComponent(query)}`,
+    );
+    const data = await response.json().catch(() => ({ brukere: [] }));
+    const staged = new Set(state.stagedParticipants.map((d) => d.id));
+    const treff = (data.brukere || []).filter((b) => !staged.has(b.id));
+
+    if (!treff.length) {
+      elements.deltakerResultater.innerHTML =
+        '<p class="participant-no-results">Ingen treff.</p>';
+      return;
+    }
+
+    elements.deltakerResultater.innerHTML = treff
+      .map(
+        (b) =>
+          `<button type="button" class="participant-result-item" data-action="stage-deltaker" data-bruker-id="${b.id}" data-brukernavn="${escapeHtml(b.brukernavn)}">${escapeHtml(b.brukernavn)}</button>`,
+      )
+      .join("");
+  }
+
+  async function leggTilStagedeDeltakere(turId) {
+    for (const d of state.stagedParticipants) {
+      try {
+        await fetch(`/api/turer/${turId}/deltakere`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ brukerId: d.id }),
+        });
+      } catch (_) {}
+    }
+    state.stagedParticipants = [];
+    renderStagedParticipants();
+  }
+
+  function renderTurCard(tur, index, total, isTagged) {
+    const nr = String(total - index).padStart(3, "0");
+    const bilder = tur.bilder || [];
+    const cover = bilder[0];
+    const extra = bilder.length - 1;
+    const hoydeTag = tur.hoyde
+      ? `<span class="tur-hero-hoyde">&#9650; ${tur.hoyde} moh</span>`
+      : "";
+    const countBadge =
+      extra > 0 ? `<span class="tur-img-count">+${extra}</span>` : "";
+    const hero = cover
+      ? `
+        <a href="${getTurDetaljUrl(tur.id)}" class="tur-hero tur-hero-link" aria-label="Aapne ${escapeHtml(tur.fjell)}">
+          <img src="/uploads/${cover.filnavn}" alt="${escapeHtml(tur.fjell)}">
+          <div class="tur-hero-overlay">
+            <span class="tur-hero-num">#${nr}</span>
+            <div class="tur-hero-right">${hoydeTag}${countBadge}</div>
+          </div>
+        </a>
+      `
+      : `
+        <a href="${getTurDetaljUrl(tur.id)}" class="tur-hero tur-hero-link" aria-label="Aapne ${escapeHtml(tur.fjell)}">
+          ${fjellSvg(tur.hoyde)}
+          <div class="tur-hero-overlay">
+            <span class="tur-hero-num">#${nr}</span>
+            <div class="tur-hero-right">${hoydeTag}${countBadge}</div>
+          </div>
+        </a>
+      `;
+
+    const actions = isTagged
+      ? `<span class="tur-tagged-badge">Du var med</span>`
+      : `
+        <button type="button" class="btn btn-edit" data-action="edit-trip" data-tur-id="${tur.id}">Rediger</button>
+        <button type="button" class="btn btn-danger" data-action="delete-trip" data-tur-id="${tur.id}">Slett</button>
+      `;
+
+    return `
+      <div class="tur-entry${isTagged ? " tur-entry-tagged" : ""}" data-tur-id="${tur.id}">
+        ${hero}
+        <div class="tur-body">
+          <div class="tur-entry-top">
+            <span class="tur-date">${escapeHtml(tur.dato)}</span>
+          </div>
+          <h3 class="tur-name"><a href="${getTurDetaljUrl(tur.id)}" class="tur-title-link">${escapeHtml(tur.fjell)}</a></h3>
+          <div class="tur-meta">
+            ${tur.distanse ? `<span class="tur-distance">${escapeHtml(tur.distanse)} km</span>` : ""}
+            ${tur.hoyde ? `<span class="tur-hoyde">${escapeHtml(tur.hoyde)} moh</span>` : ""}
+          </div>
+          ${tur.notat ? `<p class="tur-note">${escapeHtml(tur.notat)}</p>` : ""}
+          <div class="tur-actions">${actions}</div>
+        </div>
+      </div>
+    `;
+  }
+
   function renderTrips() {
-    if (!state.turer.length) {
+    const egne = state.turer;
+    const taggede = state.taggedeTurer;
+    const total = egne.length + taggede.length;
+
+    if (!total) {
       elements.turCount.textContent = "";
       elements.turListe.innerHTML = `
         <div class="empty-state">
@@ -275,66 +426,28 @@
       return;
     }
 
-    elements.turCount.textContent = `${state.turer.length} ${state.turer.length === 1 ? "tur" : "turer"}`;
+    elements.turCount.textContent = `${egne.length} ${egne.length === 1 ? "tur" : "turer"}`;
 
-    elements.turListe.innerHTML = state.turer
-      .map((tur, index) => {
-        const nr = String(state.turer.length - index).padStart(3, "0");
-        const bilder = tur.bilder || [];
-        const cover = bilder[0];
-        const extra = bilder.length - 1;
-        const hoydeTag = tur.hoyde
-          ? `<span class="tur-hero-hoyde">&#9650; ${tur.hoyde} moh</span>`
-          : "";
-        const countBadge =
-          extra > 0 ? `<span class="tur-img-count">+${extra}</span>` : "";
-        const hero = cover
-          ? `
-          <a href="${getTurDetaljUrl(tur.id)}" class="tur-hero tur-hero-link" aria-label="Aapne ${escapeHtml(tur.fjell)}">
-            <img src="/uploads/${cover.filnavn}" alt="${escapeHtml(tur.fjell)}">
-            <div class="tur-hero-overlay">
-              <span class="tur-hero-num">#${nr}</span>
-              <div class="tur-hero-right">${hoydeTag}${countBadge}</div>
-            </div>
-          </a>
-        `
-          : `
-          <a href="${getTurDetaljUrl(tur.id)}" class="tur-hero tur-hero-link" aria-label="Aapne ${escapeHtml(tur.fjell)}">
-            ${fjellSvg(tur.hoyde)}
-            <div class="tur-hero-overlay">
-              <span class="tur-hero-num">#${nr}</span>
-              <div class="tur-hero-right">${hoydeTag}${countBadge}</div>
-            </div>
-          </a>
-        `;
+    const egneHtml = egne.map((tur, i) => renderTurCard(tur, i, egne.length, false)).join("");
 
-        return `
-        <div class="tur-entry" data-tur-id="${tur.id}">
-          ${hero}
-          <div class="tur-body">
-            <div class="tur-entry-top">
-              <span class="tur-date">${escapeHtml(tur.dato)}</span>
-            </div>
-            <h3 class="tur-name"><a href="${getTurDetaljUrl(tur.id)}" class="tur-title-link">${escapeHtml(tur.fjell)}</a></h3>
-            <div class="tur-meta">
-              ${tur.distanse ? `<span class="tur-distance">${escapeHtml(tur.distanse)} km</span>` : ""}
-              ${tur.hoyde ? `<span class="tur-hoyde">${escapeHtml(tur.hoyde)} moh</span>` : ""}
-            </div>
-            ${tur.notat ? `<p class="tur-note">${escapeHtml(tur.notat)}</p>` : ""}
-            <div class="tur-actions">
-              <button type="button" class="btn btn-edit" data-action="edit-trip" data-tur-id="${tur.id}">Rediger</button>
-              <button type="button" class="btn btn-danger" data-action="delete-trip" data-tur-id="${tur.id}">Slett</button>
-            </div>
-          </div>
+    let taggedeHtml = "";
+    if (taggede.length) {
+      taggedeHtml = `
+        <div class="tur-section-header">
+          <h2 class="tur-section-title">Turer du var med p&aring;</h2>
         </div>
+        ${taggede.map((tur, i) => renderTurCard(tur, i, taggede.length, true)).join("")}
       `;
-      })
-      .join("");
+    }
+
+    elements.turListe.innerHTML = egneHtml + taggedeHtml;
   }
 
   async function lastTurer() {
     const svar = await fetch("/api/turer");
-    state.turer = await lesJson(svar);
+    const data = await lesJson(svar);
+    state.turer = data.egne || [];
+    state.taggedeTurer = data.taggede || [];
     renderTrips();
 
     if (state.aktivTurId !== null) {
@@ -419,6 +532,7 @@
       }
 
       await lastOppValgteBilder(turId, false);
+      await leggTilStagedeDeltakere(turId);
       await lastTurer();
 
       if (!id) {
@@ -569,7 +683,7 @@
       }
 
       setEditMode(tur);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      aapneSidebar();
       return;
     }
 
@@ -628,9 +742,38 @@
     });
   }
 
+  function handleDeltakerResultClick(event) {
+    const btn = event.target.closest('[data-action="stage-deltaker"]');
+    if (!btn) return;
+
+    const id = Number(btn.dataset.brukerId);
+    const brukernavn = btn.dataset.brukernavn;
+    if (!state.stagedParticipants.find((d) => d.id === id)) {
+      state.stagedParticipants.push({ id, brukernavn });
+      renderStagedParticipants();
+    }
+
+    if (elements.deltakerInput) elements.deltakerInput.value = "";
+    if (elements.deltakerResultater) elements.deltakerResultater.innerHTML = "";
+  }
+
+  function handleStagedChipClick(event) {
+    const btn = event.target.closest('[data-action="unstage-deltaker"]');
+    if (!btn) return;
+
+    const id = Number(btn.dataset.brukerId);
+    state.stagedParticipants = state.stagedParticipants.filter(
+      (d) => d.id !== id,
+    );
+    renderStagedParticipants();
+  }
+
   function setupEventListeners() {
     elements.turForm.addEventListener("submit", lagreTur);
-    elements.avbrytBtn.addEventListener("click", resetForm);
+    elements.avbrytBtn.addEventListener("click", () => {
+      resetForm();
+      lukkSidebar();
+    });
     elements.lastOppBtn.addEventListener("click", lastOppBilder);
     elements.logoutBtn.addEventListener("click", loggUt);
     elements.turListe.addEventListener("click", handleTripListClick);
@@ -644,17 +787,60 @@
       event.stopPropagation();
       lightboxNav(1);
     });
-    document.addEventListener("keydown", (event) => {
-      if (elements.lightbox.style.display !== "flex") {
-        return;
-      }
 
+    if (elements.nyTurBtn) {
+      elements.nyTurBtn.addEventListener("click", () => {
+        resetForm();
+        aapneSidebar();
+      });
+    }
+
+    if (elements.sidebarCloseBtn) {
+      elements.sidebarCloseBtn.addEventListener("click", () => {
+        resetForm();
+        lukkSidebar();
+      });
+    }
+
+    if (elements.sidebarBackdrop) {
+      elements.sidebarBackdrop.addEventListener("click", () => {
+        resetForm();
+        lukkSidebar();
+      });
+    }
+
+    if (elements.deltakerInput) {
+      elements.deltakerInput.addEventListener("input", (e) => {
+        window.clearTimeout(state.deltakersokTimer);
+        state.deltakersokTimer = window.setTimeout(
+          () => sokEtterDeltaker(e.target.value.trim()),
+          300,
+        );
+      });
+    }
+
+    if (elements.deltakerResultater) {
+      elements.deltakerResultater.addEventListener(
+        "click",
+        handleDeltakerResultClick,
+      );
+    }
+
+    if (elements.stagedDeltakere) {
+      elements.stagedDeltakere.addEventListener("click", handleStagedChipClick);
+    }
+
+    document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
-        lukkLightbox();
-      } else if (event.key === "ArrowRight") {
-        lightboxNav(1);
-      } else if (event.key === "ArrowLeft") {
-        lightboxNav(-1);
+        if (elements.lightbox.style.display === "flex") {
+          lukkLightbox();
+        } else if (document.body.classList.contains("sidebar-open")) {
+          resetForm();
+          lukkSidebar();
+        }
+      } else if (elements.lightbox.style.display === "flex") {
+        if (event.key === "ArrowRight") lightboxNav(1);
+        else if (event.key === "ArrowLeft") lightboxNav(-1);
       }
     });
 
