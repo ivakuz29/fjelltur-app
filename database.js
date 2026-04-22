@@ -18,6 +18,13 @@ db.exec(`
     bruker_id INTEGER NOT NULL,
     FOREIGN KEY (bruker_id) REFERENCES brukere(id)
   );
+
+  CREATE TABLE IF NOT EXISTS tur_bilder (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tur_id INTEGER NOT NULL,
+    filnavn TEXT NOT NULL,
+    FOREIGN KEY (tur_id) REFERENCES fjellturer(id)
+  );
 `);
 
 module.exports = db;
