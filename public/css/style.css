@@ -1,223 +1,551 @@
-* {
+@import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Azeret+Mono:wght@300;400;500&display=swap');
+
+/* ─── Reset & Base ──────────────────────────────────── */
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+:root {
+  --bg:          #0c0b09;
+  --surface:     #141210;
+  --surface-2:   #1c1a17;
+  --border:      #2c2824;
+  --border-light:#3a3530;
+  --text:        #e2d9cc;
+  --text-muted:  #7a7168;
+  --accent:      #c8773a;
+  --accent-dim:  #1f1510;
+  --danger:      #a83232;
+  --danger-dim:  #1f1010;
+  --success:     #4a7c59;
+}
+
+html, body {
+  height: 100%;
+}
+
 body {
-  font-family: 'Segoe UI', sans-serif;
-  background-color: #f0f4f8;
-  color: #333;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Azeret Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Login / Register Split Layout ────────────────── */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   min-height: 100vh;
 }
 
-/* Navigasjonsbar */
-nav {
-  background-color: #2c7a4b;
-  color: white;
-  padding: 14px 24px;
+/* Left dark panel */
+.split-hero {
+  background: var(--surface);
+  position: relative;
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  align-items: center;
+  padding: 48px 52px 0;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
 }
 
-nav button {
-  background: white;
-  color: #2c7a4b;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
+.hero-logo {
+  font-family: 'Cormorant', serif;
+  font-weight: 900;
+  font-size: clamp(72px, 10vw, 120px);
+  line-height: 0.88;
+  letter-spacing: -2px;
+  color: var(--text);
+  position: relative;
+  z-index: 2;
 }
 
-nav button:hover {
-  background: #e0f2e9;
+.hero-logo em {
+  font-style: italic;
+  color: var(--accent);
 }
 
-/* Innhold-container */
-.container {
-  max-width: 700px;
-  margin: 30px auto;
-  padding: 0 16px;
+.hero-tagline {
+  font-family: 'Azeret Mono', monospace;
+  font-size: 11px;
+  font-weight: 300;
+  color: var(--text-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 20px;
+  position: relative;
+  z-index: 2;
 }
 
-/* Kort / kort */
-.kort {
-  background: white;
-  border-radius: 10px;
-  padding: 28px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  margin-bottom: 24px;
-  max-width: 420px;
-  margin-left: auto;
-  margin-right: auto;
+.hero-tagline::before {
+  content: '—  ';
+  color: var(--accent);
 }
 
-.container .kort {
-  max-width: 100%;
-}
-
-h1 {
-  color: #2c7a4b;
-  margin-bottom: 8px;
-  font-size: 1.8rem;
-}
-
-h2 {
-  margin-bottom: 18px;
-  font-size: 1.2rem;
-  color: #555;
-}
-
-/* Skjema */
-form label {
+/* Mountain SVG silhouette */
+.mountain-svg {
   display: block;
-  margin-bottom: 4px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: #444;
-}
-
-form input,
-form textarea {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 1rem;
-  margin-bottom: 14px;
-  transition: border-color 0.2s;
+  margin-top: auto;
+  position: relative;
+  z-index: 1;
 }
 
-form input:focus,
-form textarea:focus {
-  outline: none;
-  border-color: #2c7a4b;
+/* Grain overlay on hero */
+.split-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.028;
+  pointer-events: none;
 }
 
-form textarea {
-  resize: vertical;
-  min-height: 80px;
+/* Right form panel */
+.split-form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 64px 60px;
+  background: var(--bg);
 }
 
-button[type="submit"],
-button.rediger-btn {
-  background-color: #2c7a4b;
-  color: white;
+.form-header {
+  margin-bottom: 40px;
+}
+
+.form-header h2 {
+  font-family: 'Cormorant', serif;
+  font-weight: 700;
+  font-size: 36px;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+
+.form-header p {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+/* ─── Form elements ─────────────────────────────────── */
+.field {
+  margin-bottom: 28px;
+}
+
+.field label {
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  background: transparent;
   border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 1rem;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text);
+  font-family: 'Azeret Mono', monospace;
+  font-size: 14px;
+  padding: 10px 0;
+  outline: none;
+  transition: border-color 0.2s;
+  caret-color: var(--accent);
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-bottom-color: var(--accent);
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+/* Chrome date input styling */
+.field input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5);
   cursor: pointer;
-  transition: background 0.2s;
 }
 
-button[type="submit"]:hover,
-button.rediger-btn:hover {
-  background-color: #235f3a;
+/* ─── Buttons ────────────────────────────────────────── */
+.btn {
+  display: inline-block;
+  font-family: 'Azeret Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 12px 28px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s;
 }
 
-.knapper {
+.btn-primary {
+  background: var(--accent);
+  color: #0c0b09;
+}
+
+.btn-primary:hover {
+  background: #d9884d;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-light);
+  padding: 11px 20px;
+}
+
+.btn-ghost:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid transparent;
+  padding: 6px 12px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.btn-danger:hover {
+  border-color: var(--danger);
+  background: var(--danger-dim);
+}
+
+.btn-edit {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  padding: 6px 12px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.btn-edit:hover {
+  border-color: var(--border-light);
+  color: var(--text);
+}
+
+/* ─── Melding / feedback ─────────────────────────────── */
+.melding {
+  font-size: 11px;
+  margin-top: 14px;
+  letter-spacing: 0.04em;
+  min-height: 18px;
+}
+
+.melding.feil  { color: #c06060; }
+.melding.ok    { color: var(--success); }
+
+/* ─── Auth link ──────────────────────────────────────── */
+.auth-link {
+  margin-top: 32px;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.auth-link a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+
+.auth-link a:hover {
+  border-bottom-color: var(--accent);
+}
+
+/* ─── Main app layout ────────────────────────────────── */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 40px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 100;
+}
+
+.app-brand {
+  font-family: 'Cormorant', serif;
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+
+.app-brand em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.app-user {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.app-username {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+}
+
+.app-username span {
+  color: var(--text);
+}
+
+.btn-logout {
+  font-family: 'Azeret Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-logout:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+/* ─── Two-column layout ──────────────────────────────── */
+.app-body {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  min-height: calc(100vh - 65px);
+}
+
+/* ─── Sidebar form ───────────────────────────────────── */
+.form-sidebar {
+  border-right: 1px solid var(--border);
+  padding: 36px 32px;
+  position: sticky;
+  top: 65px;
+  height: calc(100vh - 65px);
+  overflow-y: auto;
+}
+
+.sidebar-title {
+  font-family: 'Cormorant', serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--text);
+  margin-bottom: 32px;
+  letter-spacing: -0.3px;
+}
+
+.sidebar-title::after {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 1px;
+  background: var(--accent);
+  margin-top: 10px;
+}
+
+.form-actions {
   display: flex;
   gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
 }
 
-#avbryt-btn {
-  background: #888;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 1rem;
-  cursor: pointer;
+/* ─── Log panel ──────────────────────────────────────── */
+.log-panel {
+  padding: 36px 40px;
 }
 
-#avbryt-btn:hover {
-  background: #666;
+.log-header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 32px;
 }
 
-/* Meldinger */
-.melding {
-  margin-top: 12px;
-  font-size: 0.95rem;
+.log-header h1 {
+  font-family: 'Cormorant', serif;
+  font-weight: 900;
+  font-size: 48px;
+  letter-spacing: -1.5px;
+  color: var(--text);
+  line-height: 1;
 }
 
-.melding.feil {
-  color: #c0392b;
+.log-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
 }
 
-.melding.ok {
-  color: #2c7a4b;
+/* ─── Tur entry cards ────────────────────────────────── */
+.tur-entry {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 28px 28px 20px;
+  margin-bottom: 12px;
+  position: relative;
+  transition: border-color 0.18s;
 }
 
-/* Lenke */
-.lenke-tekst {
-  margin-top: 16px;
-  text-align: center;
-  font-size: 0.9rem;
-  color: #666;
+.tur-entry:hover {
+  border-color: var(--border-light);
 }
 
-.lenke-tekst a {
-  color: #2c7a4b;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.lenke-tekst a:hover {
-  text-decoration: underline;
-}
-
-/* Turkort liste */
-.tur-kort {
-  background: white;
-  border-radius: 10px;
-  padding: 18px 20px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.07);
-  margin-bottom: 14px;
+.tur-entry-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
+  margin-bottom: 12px;
 }
 
-.tur-info h3 {
-  color: #2c7a4b;
-  margin-bottom: 6px;
-  font-size: 1.1rem;
+.tur-num {
+  font-size: 10px;
+  font-weight: 300;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
 }
 
-.tur-info p {
-  font-size: 0.9rem;
-  color: #555;
-  margin-bottom: 3px;
+.tur-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
 }
 
-.tur-knapper {
+.tur-name {
+  font-family: 'Cormorant', serif;
+  font-weight: 900;
+  font-size: clamp(28px, 3vw, 38px);
+  letter-spacing: -0.5px;
+  line-height: 1;
+  color: var(--text);
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.tur-meta {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex-shrink: 0;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
-.slett-btn {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  padding: 7px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.9rem;
+.tur-distance {
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.08em;
 }
 
-.slett-btn:hover {
-  background: #c0392b;
+.tur-distance::before {
+  content: '↗ ';
 }
 
-.tom-liste {
-  text-align: center;
-  color: #888;
+.tur-note {
+  font-size: 12px;
+  color: var(--text-muted);
   font-style: italic;
-  margin-top: 10px;
+  line-height: 1.5;
+  margin-bottom: 14px;
+  padding-left: 14px;
+  border-left: 2px solid var(--border);
+}
+
+.tur-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+/* ─── Empty state ────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 80px 40px;
+  border: 1px dashed var(--border);
+}
+
+.empty-state .empty-icon {
+  font-family: 'Cormorant', serif;
+  font-weight: 900;
+  font-size: 64px;
+  color: var(--border);
+  display: block;
+  margin-bottom: 16px;
+  letter-spacing: -2px;
+  line-height: 1;
+}
+
+.empty-state p {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+/* ─── Responsive ─────────────────────────────────────── */
+@media (max-width: 860px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+
+  .split-hero {
+    display: none;
+  }
+
+  .split-form {
+    padding: 48px 32px;
+    justify-content: flex-start;
+    padding-top: 64px;
+  }
+
+  .app-body {
+    grid-template-columns: 1fr;
+  }
+
+  .form-sidebar {
+    position: static;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .log-header h1 {
+    font-size: 36px;
+  }
 }

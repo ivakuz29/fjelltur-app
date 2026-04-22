@@ -3,27 +3,65 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Logg inn - Fjelltur</title>
+  <title>Fjelltur — Logg inn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <div class="kort">
-    <h1>Fjelltur-appen</h1>
-    <h2>Logg inn</h2>
 
-    <form id="login-form">
-      <label>Brukernavn</label>
-      <input type="text" id="brukernavn" placeholder="ditt brukernavn" required>
+  <div class="split">
+    <!-- Left: hero panel -->
+    <div class="split-hero">
+      <div>
+        <div class="hero-logo">Fjell<em>tur</em></div>
+        <p class="hero-tagline">Logg dine topper. Husk hvert steg.</p>
+      </div>
 
-      <label>Passord</label>
-      <input type="password" id="passord" placeholder="ditt passord" required>
+      <!-- Mountain silhouette SVG -->
+      <svg class="mountain-svg" viewBox="0 0 800 220" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="mtnGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#c8773a" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#c8773a" stop-opacity="0.04"/>
+          </linearGradient>
+        </defs>
+        <!-- Back range (muted) -->
+        <path d="M0,220 L60,160 L120,180 L200,100 L270,140 L340,80 L420,130 L500,60 L580,110 L640,70 L710,120 L800,85 L800,220 Z"
+          fill="#1c1a17" />
+        <!-- Front range -->
+        <path d="M0,220 L40,190 L100,200 L170,140 L230,175 L300,110 L380,155 L450,90 L520,140 L590,105 L660,145 L730,115 L800,150 L800,220 Z"
+          fill="url(#mtnGrad)" stroke="#2c2824" stroke-width="0.5"/>
+        <!-- Snowcap highlight on tallest peak -->
+        <path d="M440,95 L450,90 L460,96 L455,102 L445,102 Z" fill="#e2d9cc" opacity="0.4"/>
+      </svg>
+    </div>
 
-      <button type="submit">Logg inn</button>
-    </form>
+    <!-- Right: form panel -->
+    <div class="split-form">
+      <div class="form-header">
+        <h2>Velkommen tilbake</h2>
+        <p>Logg inn for å se dine turer</p>
+      </div>
 
-    <p id="melding" class="melding"></p>
+      <form id="login-form">
+        <div class="field">
+          <label>Brukernavn</label>
+          <input type="text" id="brukernavn" placeholder="ditt brukernavn" autocomplete="username" required>
+        </div>
 
-    <p class="lenke-tekst">Har du ikke konto? <a href="/registrer">Registrer deg</a></p>
+        <div class="field">
+          <label>Passord</label>
+          <input type="password" id="passord" placeholder="••••••••" autocomplete="current-password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Logg inn</button>
+      </form>
+
+      <p id="melding" class="melding"></p>
+
+      <p class="auth-link">Ingen konto? <a href="/registrer">Registrer deg her</a></p>
+    </div>
   </div>
 
   <script>
