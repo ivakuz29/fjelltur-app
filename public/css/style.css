@@ -250,6 +250,17 @@ body {
 .melding.feil  { color: var(--danger); }
 .melding.ok    { color: var(--success); }
 
+.skjema-melding {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  margin-top: 12px;
+  min-height: 16px;
+  transition: opacity 0.3s;
+}
+
+.skjema-melding.feil { color: var(--danger); }
+.skjema-melding.ok   { color: var(--success); }
+
 /* ─── Auth link ──────────────────────────────────────── */
 .auth-link {
   margin-top: 32px;
@@ -401,27 +412,98 @@ body {
   letter-spacing: 0.1em;
 }
 
+/* ─── Trip list grid ─────────────────────────────────── */
+#tur-liste {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
 /* ─── Tur entry cards ────────────────────────────────── */
 .tur-entry {
   border: 1px solid var(--border-light);
-  border-left: 3px solid transparent;
   background: var(--surface);
-  padding: 28px 28px 20px;
-  margin-bottom: 12px;
-  position: relative;
-  transition: border-color 0.18s, box-shadow 0.18s;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.22s;
 }
 
 .tur-entry:hover {
-  border-left-color: var(--accent);
-  box-shadow: 0 2px 18px rgba(26, 105, 196, 0.08);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(26, 105, 196, 0.13);
+}
+
+/* ─── Hero image ─────────────────────────────────────── */
+.tur-hero {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.tur-hero > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.tur-entry:hover .tur-hero > img {
+  transform: scale(1.04);
+}
+
+.tur-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 52%, rgba(12, 30, 58, 0.62) 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 13px 15px;
+  pointer-events: none;
+}
+
+.tur-hero-num {
+  font-size: 10px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 0.1em;
+}
+
+.tur-hero-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tur-hero-hoyde {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.06em;
+}
+
+.tur-img-count {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(12, 30, 58, 0.48);
+  padding: 3px 9px;
+  letter-spacing: 0.06em;
+  backdrop-filter: blur(4px);
+}
+
+/* ─── Card body ──────────────────────────────────────── */
+.tur-body {
+  padding: 18px 20px 14px;
 }
 
 .tur-entry-top {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .tur-num {
@@ -555,6 +637,13 @@ body {
   .log-header h1 {
     font-size: 36px;
   }
+
+  #tur-liste {
+    grid-template-columns: 1fr;
+  }
+
+  .lightbox-prev { left: 12px; }
+  .lightbox-next { right: 12px; }
 }
 
 /* ─── Bildeopplasting ───────────────────────────────── */
@@ -760,9 +849,48 @@ body {
 }
 
 #lightbox-bilde {
-  max-width: 90vw;
-  max-height: 90vh;
+  max-width: min(88vw, calc(100vh * 4 / 3));
+  max-height: 88vh;
   object-fit: contain;
   border-radius: 2px;
+  pointer-events: none;
+}
+
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.85);
+  font-family: 'Cormorant', serif;
+  font-size: 36px;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+  line-height: 1;
+  padding: 0;
+  z-index: 1001;
+}
+
+.lightbox-nav:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.lightbox-prev { left: 28px; }
+.lightbox-next { right: 28px; }
+
+.lightbox-counter {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  letter-spacing: 0.1em;
   pointer-events: none;
 }

@@ -12,7 +12,10 @@
 
   <!-- Lightbox -->
   <div id="lightbox" onclick="lukkLightbox()">
+    <button class="lightbox-nav lightbox-prev" id="lightbox-prev" onclick="event.stopPropagation(); lightboxNav(-1)">&#8249;</button>
     <img id="lightbox-bilde" src="" alt="Fullbilde">
+    <button class="lightbox-nav lightbox-next" id="lightbox-next" onclick="event.stopPropagation(); lightboxNav(1)">&#8250;</button>
+    <span class="lightbox-counter" id="lightbox-counter"></span>
   </div>
 
   <!-- Top bar -->
@@ -81,6 +84,7 @@
           <button type="submit" id="lagre-btn" class="btn btn-primary">Lagre</button>
           <button type="button" id="avbryt-btn" class="btn btn-ghost" onclick="avbrytRediger()" style="display:none">Avbryt</button>
         </div>
+        <p class="skjema-melding" id="skjema-melding"></p>
       </form>
     </aside>
 
@@ -98,6 +102,25 @@
   <script>
     let turer = [];
     let aktivTurId = null;
+    let lightboxBilder = [];
+    let lightboxIndex = 0;
+
+    function fjellSvg(hoyde) {
+      const t = hoyde ? Math.min(1, hoyde / 2469) : 0.35;
+      const topY = Math.round(170 - t * 148);
+      const span = 240 - topY;
+      const s1 = Math.round(topY + span * 0.42);
+      const s2 = Math.round(topY + span * 0.32);
+      const r1 = Math.round(topY + span * 0.58);
+      const r2 = Math.round(topY + span * 0.48);
+      const r3 = Math.round(topY + span * 0.37);
+      return `<svg viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">` +
+        `<rect width="400" height="240" fill="#e4eef9"/>` +
+        `<polygon points="0,240 80,${s1} 155,${r1} 235,${topY} 315,${s2} 365,${r2} 400,${r3} 400,240" fill="#c8d8ec" opacity="0.8"/>` +
+        `<polygon points="210,240 235,${topY} 315,${s2} 365,${r2} 400,${r3} 400,240" fill="#bed0e8" opacity="0.55"/>` +
+        `<polygon points="0,240 80,${s1} 160,240" fill="#d4e4f4" opacity="0.45"/>` +
+        `</svg>`;
+    }
 
     window.addEventListener('load', async () => {
       const svar = await fetch('/api/meg');
@@ -127,27 +150,37 @@
 
       liste.innerHTML = turer.map((tur, i) => {
         const nr = String(turer.length - i).padStart(3, '0');
-        const bildeHtml = tur.bilder && tur.bilder.length > 0
-          ? `<div class="tur-bilder">${tur.bilder.map(b =>
-              `<img src="/uploads/${b.filnavn}" alt="Bilde" onclick="aapneLightbox('/uploads/${b.filnavn}')">`
-            ).join('')}</div>`
-          : '';
+        const bilder = tur.bilder || [];
+        const cover = bilder[0];
+        const extra = bilder.length - 1;
+        const heroContent = cover
+          ? `<img src="/uploads/${cover.filnavn}" alt="${tur.fjell}" onclick="aapneLightbox(${JSON.stringify(bilder.map(b => '/uploads/' + b.filnavn))}, 0)">`
+          : fjellSvg(tur.hoyde);
+        const countBadge = extra > 0 ? `<span class="tur-img-count">+${extra}</span>` : '';
+        const hoydeTag = tur.hoyde ? `<span class="tur-hero-hoyde">▲ ${tur.hoyde} moh</span>` : '';
         return `
           <div class="tur-entry">
-            <div class="tur-entry-top">
-              <span class="tur-num">#${nr}</span>
-              <span class="tur-date">${tur.dato}</span>
+            <div class="tur-hero">
+              ${heroContent}
+              <div class="tur-hero-overlay">
+                <span class="tur-hero-num">#${nr}</span>
+                <div class="tur-hero-right">${hoydeTag}${countBadge}</div>
+              </div>
             </div>
-            <h3 class="tur-name">${tur.fjell}</h3>
-            <div class="tur-meta">
-              ${tur.distanse ? `<span class="tur-distance">${tur.distanse} km</span>` : ''}
-              ${tur.hoyde ? `<span class="tur-hoyde">${tur.hoyde} moh</span>` : ''}
-            </div>
-            ${tur.notat ? `<p class="tur-note">${tur.notat}</p>` : ''}
-            ${bildeHtml}
-            <div class="tur-actions">
-              <button class="btn btn-edit" onclick="startRediger(${tur.id})">Rediger</button>
-              <button class="btn btn-danger" onclick="slettTur(${tur.id})">Slett</button>
+            <div class="tur-body">
+              <div class="tur-entry-top">
+                <span class="tur-date">${tur.dato}</span>
+              </div>
+              <h3 class="tur-name">${tur.fjell}</h3>
+              <div class="tur-meta">
+                ${tur.distanse ? `<span class="tur-distance">${tur.distanse} km</span>` : ''}
+                ${tur.hoyde ? `<span class="tur-hoyde">${tur.hoyde} moh</span>` : ''}
+              </div>
+              ${tur.notat ? `<p class="tur-note">${tur.notat}</p>` : ''}
+              <div class="tur-actions">
+                <button class="btn btn-edit" onclick="startRediger(${tur.id})">Rediger</button>
+                <button class="btn btn-danger" onclick="slettTur(${tur.id})">Slett</button>
+              </div>
             </div>
           </div>`;
       }).join('');
@@ -186,6 +219,10 @@
       }
 
       const result = await svar.json();
+      if (!result.ok) {
+        visMelding(result.melding || 'Noe gikk galt.', 'feil');
+        return;
+      }
       if (result.ok) {
         if (!id) {
           aktivTurId = result.id;
@@ -215,9 +252,18 @@
           }
         } else {
           await lastTurer();
+          visMelding('Lagret', 'ok');
         }
       }
     });
+
+    function visMelding(tekst, type) {
+      const el = document.getElementById('skjema-melding');
+      el.textContent = tekst;
+      el.className = 'skjema-melding ' + type;
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => { el.textContent = ''; el.className = 'skjema-melding'; }, 3000);
+    }
 
     function startRediger(id) {
       aktivTurId = id;
@@ -300,15 +346,40 @@
       }
     }
 
-    function aapneLightbox(src) {
-      document.getElementById('lightbox-bilde').src = src;
+    function aapneLightbox(bilder, index) {
+      lightboxBilder = Array.isArray(bilder) ? bilder : [bilder];
+      lightboxIndex = index || 0;
+      visLightboxBilde();
       document.getElementById('lightbox').style.display = 'flex';
+    }
+
+    function visLightboxBilde() {
+      document.getElementById('lightbox-bilde').src = lightboxBilder[lightboxIndex];
+      const multi = lightboxBilder.length > 1;
+      document.getElementById('lightbox-prev').style.display = multi ? 'flex' : 'none';
+      document.getElementById('lightbox-next').style.display = multi ? 'flex' : 'none';
+      document.getElementById('lightbox-counter').textContent = multi
+        ? `${lightboxIndex + 1} / ${lightboxBilder.length}` : '';
+    }
+
+    function lightboxNav(dir) {
+      lightboxIndex = (lightboxIndex + dir + lightboxBilder.length) % lightboxBilder.length;
+      visLightboxBilde();
     }
 
     function lukkLightbox() {
       document.getElementById('lightbox').style.display = 'none';
       document.getElementById('lightbox-bilde').src = '';
+      lightboxBilder = [];
     }
+
+    document.addEventListener('keydown', (e) => {
+      if (document.getElementById('lightbox').style.display === 'flex') {
+        if (e.key === 'Escape') lukkLightbox();
+        if (e.key === 'ArrowRight') lightboxNav(1);
+        if (e.key === 'ArrowLeft') lightboxNav(-1);
+      }
+    });
 
     async function loggUt() {
       await fetch('/api/logout', { method: 'POST' });
