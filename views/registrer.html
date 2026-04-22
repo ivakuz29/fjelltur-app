@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fjelltur — Registrer deg</title>
+  <title>Fjelltur &mdash; Registrer deg</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/css/style.css">
@@ -11,7 +11,6 @@
 <body>
 
   <div class="split">
-    <!-- Left: hero panel -->
     <div class="split-hero">
       <div>
         <div class="hero-logo">Fjell<em>tur</em></div>
@@ -25,19 +24,16 @@
             <stop offset="100%" stop-color="#1a69c4" stop-opacity="0.04"/>
           </linearGradient>
         </defs>
-        <path d="M0,220 L60,160 L120,180 L200,100 L270,140 L340,80 L420,130 L500,60 L580,110 L640,70 L710,120 L800,85 L800,220 Z"
-          fill="#142e58" />
-        <path d="M0,220 L40,190 L100,200 L170,140 L230,175 L300,110 L380,155 L450,90 L520,140 L590,105 L660,145 L730,115 L800,150 L800,220 Z"
-          fill="url(#mtnGrad2)" stroke="#1e3d6a" stroke-width="0.5"/>
+        <path d="M0,220 L60,160 L120,180 L200,100 L270,140 L340,80 L420,130 L500,60 L580,110 L640,70 L710,120 L800,85 L800,220 Z" fill="#142e58" />
+        <path d="M0,220 L40,190 L100,200 L170,140 L230,175 L300,110 L380,155 L450,90 L520,140 L590,105 L660,145 L730,115 L800,150 L800,220 Z" fill="url(#mtnGrad2)" stroke="#1e3d6a" stroke-width="0.5"/>
         <path d="M440,95 L450,90 L460,96 L455,102 L445,102 Z" fill="#dce9f8" opacity="0.6"/>
       </svg>
     </div>
 
-    <!-- Right: form panel -->
     <div class="split-form">
       <div class="form-header">
         <h2>Opprett konto</h2>
-        <p>Gratis og tar bare et øyeblikk</p>
+        <p>Gratis og tar bare et &oslash;yeblikk</p>
       </div>
 
       <form id="registrer-form">
@@ -48,7 +44,7 @@
 
         <div class="field">
           <label>Passord</label>
-          <input type="password" id="passord" placeholder="••••••••" autocomplete="new-password" required>
+          <input type="password" id="passord" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password" required>
         </div>
 
         <button type="submit" class="btn btn-primary">Registrer meg</button>
@@ -60,30 +56,6 @@
     </div>
   </div>
 
-  <script>
-    document.getElementById('registrer-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const melding = document.getElementById('melding');
-
-      const svar = await fetch('/api/registrer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          brukernavn: document.getElementById('brukernavn').value,
-          passord: document.getElementById('passord').value
-        })
-      });
-
-      const data = await svar.json();
-      if (data.ok) {
-        melding.textContent = data.melding;
-        melding.className = 'melding ok';
-        setTimeout(() => window.location.href = '/', 1500);
-      } else {
-        melding.textContent = data.melding;
-        melding.className = 'melding feil';
-      }
-    });
-  </script>
+  <script src="/js/pages/register.js" defer></script>
 </body>
 </html>

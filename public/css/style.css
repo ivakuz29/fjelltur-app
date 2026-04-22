@@ -442,6 +442,14 @@ body {
   cursor: pointer;
 }
 
+button.tur-hero {
+  width: 100%;
+  padding: 0;
+  border: none;
+  text-align: left;
+  font: inherit;
+}
+
 .tur-hero > img {
   width: 100%;
   height: 100%;
