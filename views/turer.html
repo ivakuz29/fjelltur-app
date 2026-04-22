@@ -30,6 +30,25 @@
     <aside class="form-sidebar">
       <h2 class="sidebar-title" id="skjema-tittel">Ny tur</h2>
 
+      <!-- Bildeopplasting -->
+      <div id="bilde-seksjon">
+        <p class="bilde-seksjon-tittel">Bilder</p>
+        <div id="eksisterende-bilder" class="bilde-grid"></div>
+
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" id="bilde-input" multiple accept="image/*">
+          <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 16.5V9.75m0 0-3 3m3-3 3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.338-2.32 5.75 5.75 0 0 1 1.232 11.095H6.75Z"/>
+          </svg>
+          <p class="drop-primary">Slipp bilder her</p>
+          <p class="drop-secondary">eller klikk for å velge</p>
+          <p class="drop-formats">JPG · PNG · WebP</p>
+          <p class="drop-count" id="drop-count"></p>
+        </div>
+        <button type="button" id="last-opp-btn" class="btn btn-primary drop-upload-btn" onclick="lastOppBilder()">Last opp</button>
+        <div class="bilde-seksjon-divider"></div>
+      </div>
+
       <form id="tur-form">
         <input type="hidden" id="rediger-id">
 
@@ -49,6 +68,11 @@
         </div>
 
         <div class="field">
+          <label>Høyde (moh)</label>
+          <input type="number" id="hoyde" placeholder="f.eks. 2469" step="1" min="0">
+        </div>
+
+        <div class="field">
           <label>Notat</label>
           <textarea id="notat" placeholder="Skriv noe om turen..."></textarea>
         </div>
@@ -58,17 +82,6 @@
           <button type="button" id="avbryt-btn" class="btn btn-ghost" onclick="avbrytRediger()" style="display:none">Avbryt</button>
         </div>
       </form>
-
-      <!-- Bildeopplasting — vises kun ved redigering -->
-      <div id="bilde-seksjon" style="display:none">
-        <div class="bilde-seksjon-divider"></div>
-        <p class="bilde-seksjon-tittel">Bilder</p>
-        <div id="eksisterende-bilder" class="bilde-grid"></div>
-        <div class="bilde-last-opp">
-          <input type="file" id="bilde-input" multiple accept="image/*">
-          <button type="button" id="last-opp-btn" class="btn btn-ghost btn-sm" onclick="lastOppBilder()">Last opp</button>
-        </div>
-      </div>
     </aside>
 
     <!-- Right: Log entries -->
@@ -128,6 +141,7 @@
             <h3 class="tur-name">${tur.fjell}</h3>
             <div class="tur-meta">
               ${tur.distanse ? `<span class="tur-distance">${tur.distanse} km</span>` : ''}
+              ${tur.hoyde ? `<span class="tur-hoyde">${tur.hoyde} moh</span>` : ''}
             </div>
             ${tur.notat ? `<p class="tur-note">${tur.notat}</p>` : ''}
             ${bildeHtml}
@@ -152,6 +166,7 @@
         fjell: document.getElementById('fjell').value,
         dato: document.getElementById('dato').value,
         distanse: document.getElementById('distanse').value,
+        hoyde: document.getElementById('hoyde').value,
         notat: document.getElementById('notat').value
       };
 
@@ -173,8 +188,17 @@
       const result = await svar.json();
       if (result.ok) {
         if (!id) {
-          // Ny tur: gå inn i redigeringsmodus for å kunne laste opp bilder
           aktivTurId = result.id;
+
+          // Auto-last opp eventuelle valgte bilder
+          const input = document.getElementById('bilde-input');
+          if (input.files.length) {
+            const fd = new FormData();
+            for (const fil of input.files) fd.append('bilder', fil);
+            await fetch(`/api/turer/${aktivTurId}/bilder`, { method: 'POST', body: fd });
+            input.value = '';
+          }
+
           await lastTurer();
           const tur = turer.find(t => t.id === result.id);
           if (tur) {
@@ -182,11 +206,12 @@
             document.getElementById('fjell').value = tur.fjell;
             document.getElementById('dato').value = tur.dato;
             document.getElementById('distanse').value = tur.distanse || '';
+            document.getElementById('hoyde').value = tur.hoyde || '';
             document.getElementById('notat').value = tur.notat || '';
             document.getElementById('skjema-tittel').textContent = 'Rediger tur';
             document.getElementById('lagre-btn').textContent = 'Oppdater';
             document.getElementById('avbryt-btn').style.display = 'inline-block';
-            oppdaterBildeSeksjon([]);
+            oppdaterBildeSeksjon(tur.bilder || []);
           }
         } else {
           await lastTurer();
@@ -201,6 +226,7 @@
       document.getElementById('fjell').value = tur.fjell;
       document.getElementById('dato').value = tur.dato;
       document.getElementById('distanse').value = tur.distanse || '';
+      document.getElementById('hoyde').value = tur.hoyde || '';
       document.getElementById('notat').value = tur.notat || '';
       document.getElementById('skjema-tittel').textContent = 'Rediger tur';
       document.getElementById('lagre-btn').textContent = 'Oppdater';
@@ -232,8 +258,10 @@
       document.getElementById('skjema-tittel').textContent = 'Ny tur';
       document.getElementById('lagre-btn').textContent = 'Lagre';
       document.getElementById('avbryt-btn').style.display = 'none';
-      document.getElementById('bilde-seksjon').style.display = 'none';
+      document.getElementById('hoyde').value = '';
+      document.getElementById('bilde-input').value = '';
       document.getElementById('eksisterende-bilder').innerHTML = '';
+      oppdaterDropCount(0);
     }
 
     async function lastOppBilder() {
@@ -285,6 +313,37 @@
     async function loggUt() {
       await fetch('/api/logout', { method: 'POST' });
       window.location.href = '/';
+    }
+
+    // ── Drag & drop ──────────────────────────────────────
+    const dropZone = document.getElementById('drop-zone');
+    const bildeInputEl = document.getElementById('bilde-input');
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', (e) => {
+      if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const dt = new DataTransfer();
+      for (const f of e.dataTransfer.files) {
+        if (f.type.startsWith('image/')) dt.items.add(f);
+      }
+      bildeInputEl.files = dt.files;
+      oppdaterDropCount(dt.files.length);
+    });
+
+    bildeInputEl.addEventListener('change', () => oppdaterDropCount(bildeInputEl.files.length));
+
+    function oppdaterDropCount(n) {
+      document.getElementById('drop-count').textContent =
+        n > 0 ? n + (n === 1 ? ' bilde valgt' : ' bilder valgt') : '';
     }
   </script>
 </body>

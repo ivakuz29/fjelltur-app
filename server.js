@@ -112,26 +112,26 @@ app.get('/api/turer', kreverInnlogging, (req, res) => {
 });
 
 app.post('/api/turer', kreverInnlogging, (req, res) => {
-  const { fjell, dato, distanse, notat } = req.body;
+  const { fjell, dato, distanse, hoyde, notat } = req.body;
   if (!fjell || !dato) return res.json({ ok: false, melding: 'Fjell og dato er påkrevd.' });
 
   const result = db.prepare(
-    'INSERT INTO fjellturer (fjell, dato, distanse, notat, bruker_id) VALUES (?, ?, ?, ?, ?)'
-  ).run(fjell, dato, distanse || null, notat || '', req.session.bruker.id);
+    'INSERT INTO fjellturer (fjell, dato, distanse, hoyde, notat, bruker_id) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(fjell, dato, distanse || null, hoyde || null, notat || '', req.session.bruker.id);
 
   res.json({ ok: true, id: result.lastInsertRowid });
 });
 
 app.put('/api/turer/:id', kreverInnlogging, (req, res) => {
-  const { fjell, dato, distanse, notat } = req.body;
+  const { fjell, dato, distanse, hoyde, notat } = req.body;
   const { id } = req.params;
 
   const tur = db.prepare('SELECT * FROM fjellturer WHERE id = ? AND bruker_id = ?').get(id, req.session.bruker.id);
   if (!tur) return res.json({ ok: false, melding: 'Tur ikke funnet.' });
 
   db.prepare(
-    'UPDATE fjellturer SET fjell = ?, dato = ?, distanse = ?, notat = ? WHERE id = ?'
-  ).run(fjell, dato, distanse || null, notat || '', id);
+    'UPDATE fjellturer SET fjell = ?, dato = ?, distanse = ?, hoyde = ?, notat = ? WHERE id = ?'
+  ).run(fjell, dato, distanse || null, hoyde || null, notat || '', id);
 
   res.json({ ok: true });
 });

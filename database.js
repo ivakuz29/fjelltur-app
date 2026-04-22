@@ -27,4 +27,9 @@ db.exec(`
   );
 `);
 
+// Migrasjon: legg til hoyde-kolonne hvis den ikke finnes
+try {
+  db.exec('ALTER TABLE fjellturer ADD COLUMN hoyde INTEGER');
+} catch (_) {}
+
 module.exports = db;
