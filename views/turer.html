@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mine turer - Fjelltur</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav>
+    <span id="nav-bruker"></span>
+    <button id="logg-ut-btn" onclick="loggUt()">Logg ut</button>
+  </nav>
+
+  <div class="container">
+    <h1>Mine fjellturer</h1>
+
+    <!-- Legg til ny tur -->
+    <div class="kort">
+      <h2 id="skjema-tittel">Legg til tur</h2>
+      <form id="tur-form">
+        <input type="hidden" id="rediger-id">
+
+        <label>Fjell *</label>
+        <input type="text" id="fjell" placeholder="f.eks. Galdhøpiggen" required>
+
+        <label>Dato *</label>
+        <input type="date" id="dato" required>
+
+        <label>Distanse (km)</label>
+        <input type="number" id="distanse" placeholder="f.eks. 12.5" step="0.1" min="0">
+
+        <label>Notat</label>
+        <textarea id="notat" placeholder="Skriv noe om turen..."></textarea>
+
+        <div class="knapper">
+          <button type="submit" id="lagre-btn">Lagre tur</button>
+          <button type="button" id="avbryt-btn" onclick="avbrytRediger()" style="display:none">Avbryt</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Liste over turer -->
+    <div id="tur-liste"></div>
+  </div>
+
+  <script>
+    // Last turer når siden åpnes
+    window.addEventListener('load', async () => {
+      const svar = await fetch('/api/meg');
+      const data = await svar.json();
+      if (!data.ok) {
+        window.location.href = '/';
+        return;
+      }
+      document.getElementById('nav-bruker').textContent = 'Innlogget som: ' + data.bruker.brukernavn;
+      lastTurer();
+    });
+
+    // Hent og vis alle turer
+    async function lastTurer() {
+      const svar = await fetch('/api/turer');
+      const turer = await svar.json();
+      const liste = document.getElementById('tur-liste');
+
+      if (turer.length === 0) {
+        liste.innerHTML = '<p class="tom-liste">Du har ikke lagt til noen turer enda.</p>';
+        return;
+      }
+
+      liste.innerHTML = turer.map(tur => `
+        <div class="tur-kort">
+          <div class="tur-info">
+            <h3>${tur.fjell}</h3>
+            <p>Dato: ${tur.dato}</p>
+            ${tur.distanse ? `<p>Distanse: ${tur.distanse} km</p>` : ''}
+            ${tur.notat ? `<p>Notat: ${tur.notat}</p>` : ''}
+          </div>
+          <div class="tur-knapper">
+            <button class="rediger-btn" onclick="startRediger(${tur.id}, '${tur.fjell}', '${tur.dato}', '${tur.distanse || ''}', \`${tur.notat || ''}\`)">Rediger</button>
+            <button class="slett-btn" onclick="slettTur(${tur.id})">Slett</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Lagre ny tur eller oppdater
+    document.getElementById('tur-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const id = document.getElementById('rediger-id').value;
+      const data = {
+        fjell: document.getElementById('fjell').value,
+        dato: document.getElementById('dato').value,
+        distanse: document.getElementById('distanse').value,
+        notat: document.getElementById('notat').value
+      };
+
+      let svar;
+      if (id) {
+        // Oppdater eksisterende (Update)
+        svar = await fetch('/api/turer/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      } else {
+        // Legg til ny (Create)
+        svar = await fetch('/api/turer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      }
+
+      const result = await svar.json();
+      if (result.ok) {
+        avbrytRediger();
+        lastTurer();
+      }
+    });
+
+    // Start redigering av tur
+    function startRediger(id, fjell, dato, distanse, notat) {
+      document.getElementById('rediger-id').value = id;
+      document.getElementById('fjell').value = fjell;
+      document.getElementById('dato').value = dato;
+      document.getElementById('distanse').value = distanse;
+      document.getElementById('notat').value = notat;
+      document.getElementById('skjema-tittel').textContent = 'Rediger tur';
+      document.getElementById('lagre-btn').textContent = 'Oppdater tur';
+      document.getElementById('avbryt-btn').style.display = 'inline-block';
+      window.scrollTo(0, 0);
+    }
+
+    // Avbryt redigering
+    function avbrytRediger() {
+      document.getElementById('tur-form').reset();
+      document.getElementById('rediger-id').value = '';
+      document.getElementById('skjema-tittel').textContent = 'Legg til tur';
+      document.getElementById('lagre-btn').textContent = 'Lagre tur';
+      document.getElementById('avbryt-btn').style.display = 'none';
+    }
+
+    // Slett tur
+    async function slettTur(id) {
+      if (!confirm('Er du sikker på at du vil slette denne turen?')) return;
+
+      const svar = await fetch('/api/turer/' + id, { method: 'DELETE' });
+      const data = await svar.json();
+      if (data.ok) {
+        lastTurer();
+      }
+    }
+
+    // Logg ut
+    async function loggUt() {
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>

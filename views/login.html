@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logg inn - Fjelltur</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="kort">
+    <h1>Fjelltur-appen</h1>
+    <h2>Logg inn</h2>
+
+    <form id="login-form">
+      <label>Brukernavn</label>
+      <input type="text" id="brukernavn" placeholder="ditt brukernavn" required>
+
+      <label>Passord</label>
+      <input type="password" id="passord" placeholder="ditt passord" required>
+
+      <button type="submit">Logg inn</button>
+    </form>
+
+    <p id="melding" class="melding"></p>
+
+    <p class="lenke-tekst">Har du ikke konto? <a href="/registrer">Registrer deg</a></p>
+  </div>
+
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const melding = document.getElementById('melding');
+
+      const svar = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brukernavn: document.getElementById('brukernavn').value,
+          passord: document.getElementById('passord').value
+        })
+      });
+
+      const data = await svar.json();
+      if (data.ok) {
+        window.location.href = '/turer';
+      } else {
+        melding.textContent = data.melding;
+        melding.className = 'melding feil';
+      }
+    });
+  </script>
+</body>
+</html>

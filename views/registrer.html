@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registrer - Fjelltur</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="kort">
+    <h1>Fjelltur-appen</h1>
+    <h2>Registrer deg</h2>
+
+    <form id="registrer-form">
+      <label>Brukernavn</label>
+      <input type="text" id="brukernavn" placeholder="velg et brukernavn" required>
+
+      <label>Passord</label>
+      <input type="password" id="passord" placeholder="velg et passord" required>
+
+      <button type="submit">Registrer</button>
+    </form>
+
+    <p id="melding" class="melding"></p>
+
+    <p class="lenke-tekst">Har du allerede konto? <a href="/">Logg inn</a></p>
+  </div>
+
+  <script>
+    document.getElementById('registrer-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const melding = document.getElementById('melding');
+
+      const svar = await fetch('/api/registrer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brukernavn: document.getElementById('brukernavn').value,
+          passord: document.getElementById('passord').value
+        })
+      });
+
+      const data = await svar.json();
+      if (data.ok) {
+        melding.textContent = data.melding;
+        melding.className = 'melding ok';
+        setTimeout(() => window.location.href = '/', 1500);
+      } else {
+        melding.textContent = data.melding;
+        melding.className = 'melding feil';
+      }
+    });
+  </script>
+</body>
+</html>
