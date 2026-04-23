@@ -6,14 +6,22 @@
   <title>Fjelltur &mdash; Turdetaljer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/css/style.css?v=20260422-10">
+  <link rel="stylesheet" href="/css/style.css?v=20260423-1">
 </head>
 <body>
   <header class="app-header">
     <a href="/turer" class="app-brand app-brand-link">Fjell<em>tur</em></a>
     <div class="app-user">
-      <span class="app-username">&mdash; <span id="nav-bruker"></span></span>
-      <button type="button" class="btn-logout" id="logout-btn">Logg ut</button>
+      <div class="user-menu" id="user-menu">
+        <button type="button" class="user-menu-btn" id="user-menu-btn" aria-expanded="false" aria-haspopup="true">
+          &mdash; <span id="nav-bruker"></span>
+          <svg class="user-menu-chevron" viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M1 1l5 5 5-5"/></svg>
+        </button>
+        <div class="user-dropdown" id="user-dropdown" role="menu">
+          <button type="button" class="user-dropdown-item" id="bytt-passord-btn" role="menuitem">Bytt passord</button>
+          <button type="button" class="user-dropdown-item user-dropdown-item--danger" id="logout-btn" role="menuitem">Logg ut</button>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -77,6 +85,31 @@
   <div id="trip-thumb-row" hidden></div>
   <span id="trip-stage-status" hidden></span>
 
-  <script src="/js/pages/trip-detail.js?v=20260422-9" defer></script>
+  <div class="modal-overlay" id="passord-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="passord-modal-title">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 class="modal-title" id="passord-modal-title">Bytt passord</h2>
+        <button type="button" class="modal-close" id="passord-modal-close" aria-label="Lukk">&#215;</button>
+      </div>
+      <form id="bytt-passord-form">
+        <div class="field">
+          <label>N&aring;v&aelig;rende passord</label>
+          <input type="password" id="gammelt-passord" autocomplete="current-password" required>
+        </div>
+        <div class="field">
+          <label>Nytt passord</label>
+          <input type="password" id="nytt-passord" autocomplete="new-password" required>
+        </div>
+        <div class="field">
+          <label>Bekreft nytt passord</label>
+          <input type="password" id="bekreft-passord" autocomplete="new-password" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%">Endre passord</button>
+        <p class="melding" id="passord-melding"></p>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/pages/trip-detail.js?v=20260423-1" defer></script>
 </body>
 </html>

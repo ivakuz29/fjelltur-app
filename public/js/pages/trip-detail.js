@@ -1,5 +1,5 @@
 (function () {
-  const APP_VERSION = "20260422-9";
+  const APP_VERSION = "20260423-1";
   const EMPTY_STAGE =
     "data:image/svg+xml;charset=UTF-8," +
     encodeURIComponent(
@@ -33,6 +33,16 @@
   const elements = {
     navBruker: document.getElementById("nav-bruker"),
     logoutBtn: document.getElementById("logout-btn"),
+    userMenuBtn: document.getElementById("user-menu-btn"),
+    userDropdown: document.getElementById("user-dropdown"),
+    byttPassordBtn: document.getElementById("bytt-passord-btn"),
+    passordModalOverlay: document.getElementById("passord-modal-overlay"),
+    byttPassordForm: document.getElementById("bytt-passord-form"),
+    gammeltPassord: document.getElementById("gammelt-passord"),
+    nyttPassord: document.getElementById("nytt-passord"),
+    bekreftPassord: document.getElementById("bekreft-passord"),
+    passordMelding: document.getElementById("passord-melding"),
+    passordModalClose: document.getElementById("passord-modal-close"),
     tripLoading: document.getElementById("trip-loading"),
     tripHeroPanel: document.getElementById("trip-hero-panel"),
     tripKicker: document.getElementById("trip-kicker"),
@@ -149,7 +159,7 @@
     }, 3000);
   }
 
-  function renderParticipants(deltakere, isEier) {
+  function renderParticipants(deltakere, isEier, currentUserId) {
     const section = elements.tripParticipantsSection;
     if (!section) return;
 
@@ -165,14 +175,17 @@
       list.innerHTML = '<p class="no-participants">Ingen deltakere lagt til ennå.</p>';
     } else {
       list.innerHTML = deltakere
-        .map(
-          (d) => `
+        .map((d) => {
+          const isSelf = d.id === currentUserId;
+          const canRemove = isEier || isSelf;
+          const removeTitle = isEier && !isSelf ? "Fjern" : "Meld deg av";
+          return `
             <span class="participant-chip">
               ${escapeHtml(d.brukernavn)}
-              ${isEier ? `<button type="button" class="participant-remove" data-action="remove-participant" data-bruker-id="${d.id}" title="Fjern">&times;</button>` : ""}
+              ${canRemove ? `<button type="button" class="participant-remove" data-action="remove-participant" data-bruker-id="${d.id}" title="${removeTitle}">&times;</button>` : ""}
             </span>
-          `,
-        )
+          `;
+        })
         .join("");
     }
 
@@ -296,7 +309,7 @@
     elements.tripTitle.textContent = trip.fjell;
     elements.tripNote.textContent = trip.notat || "Ingen notat lagt til for denne turen enn\u00e5.";
     renderStats(trip);
-    renderParticipants(trip.deltakere || [], !!trip.eier);
+    renderParticipants(trip.deltakere || [], !!trip.eier, state.user ? state.user.id : null);
     updateStageImage();
     startCarousel();
 
@@ -314,7 +327,7 @@
   }
 
   function renderCommentItem(comment, isReply) {
-    const hasReplyForm = Number(state.replyTargetId) === Number(comment.id);
+    const hasReplyForm = !isReply && Number(state.replyTargetId) === Number(comment.id);
     return `
       <article class="comment-card${isReply ? " is-reply" : ""}">
         <div class="comment-meta">
@@ -322,11 +335,17 @@
           <span>${escapeHtml(formatCommentDate(comment.opprettet))}</span>
         </div>
         <p class="comment-body">${escapeHtml(comment.innhold)}</p>
-        <div class="comment-actions">
-          <button type="button" class="comment-reply-btn" data-action="toggle-reply" data-comment-id="${comment.id}">
-            ${hasReplyForm ? "Avbryt svar" : "Svar"}
-          </button>
-        </div>
+        ${
+          !isReply
+            ? `
+              <div class="comment-actions">
+                <button type="button" class="comment-reply-btn" data-action="toggle-reply" data-comment-id="${comment.id}">
+                  ${hasReplyForm ? "Avbryt svar" : "Svar"}
+                </button>
+              </div>
+            `
+            : ""
+        }
         ${
           hasReplyForm
             ? `
@@ -376,6 +395,63 @@
   async function loggUt() {
     await fetch("/api/logout", { method: "POST" });
     window.location.href = "/";
+  }
+
+  function toggleUserMenu() {
+    const isOpen = elements.userDropdown.classList.contains("open");
+    elements.userDropdown.classList.toggle("open", !isOpen);
+    elements.userMenuBtn.setAttribute("aria-expanded", String(!isOpen));
+  }
+
+  function lukkUserMenu() {
+    elements.userDropdown.classList.remove("open");
+    elements.userMenuBtn.setAttribute("aria-expanded", "false");
+  }
+
+  function aapnePassordModal() {
+    lukkUserMenu();
+    elements.passordModalOverlay.classList.add("open");
+    elements.gammeltPassord.focus();
+  }
+
+  function lukkPassordModal() {
+    elements.passordModalOverlay.classList.remove("open");
+    elements.byttPassordForm.reset();
+    elements.passordMelding.textContent = "";
+    elements.passordMelding.className = "melding";
+  }
+
+  async function handleByttPassord(event) {
+    event.preventDefault();
+    const gammelt = elements.gammeltPassord.value;
+    const nytt = elements.nyttPassord.value;
+    const bekreft = elements.bekreftPassord.value;
+
+    if (nytt !== bekreft) {
+      elements.passordMelding.textContent = "Passordene stemmer ikke overens.";
+      elements.passordMelding.className = "melding feil";
+      return;
+    }
+
+    try {
+      const svar = await fetch("/api/bytt-passord", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gammeltPassord: gammelt, nyttPassord: nytt }),
+      });
+      const data = await svar.json();
+      if (data.ok) {
+        elements.passordMelding.textContent = "Passord endret!";
+        elements.passordMelding.className = "melding ok";
+        setTimeout(lukkPassordModal, 1500);
+      } else {
+        elements.passordMelding.textContent = data.melding || "Noe gikk galt.";
+        elements.passordMelding.className = "melding feil";
+      }
+    } catch (_) {
+      elements.passordMelding.textContent = "Kunne ikke endre passord.";
+      elements.passordMelding.className = "melding feil";
+    }
   }
 
   async function submitComment(payload) {
@@ -463,8 +539,14 @@
       { method: "DELETE" },
     );
     const data = await lesJson(response);
+
+    if (brukerId === state.user.id) {
+      window.location.href = "/turer";
+      return;
+    }
+
     state.trip.deltakere = data.deltakere || [];
-    renderParticipants(state.trip.deltakere, !!state.trip.eier);
+    renderParticipants(state.trip.deltakere, !!state.trip.eier, state.user.id);
   }
 
   function handleParticipantListClick(event) {
@@ -512,13 +594,33 @@
     });
     const data = await lesJson(response);
     state.trip.deltakere = data.deltakere || [];
-    renderParticipants(state.trip.deltakere, !!state.trip.eier);
+    renderParticipants(state.trip.deltakere, !!state.trip.eier, state.user.id);
     if (elements.participantInput) elements.participantInput.value = "";
     if (elements.participantResults) elements.participantResults.innerHTML = "";
   }
 
   function bindEvents() {
     elements.logoutBtn.addEventListener("click", loggUt);
+    elements.userMenuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleUserMenu();
+    });
+    elements.byttPassordBtn.addEventListener("click", aapnePassordModal);
+    elements.passordModalClose.addEventListener("click", lukkPassordModal);
+    elements.passordModalOverlay.addEventListener("click", (e) => {
+      if (e.target === elements.passordModalOverlay) lukkPassordModal();
+    });
+    elements.byttPassordForm.addEventListener("submit", handleByttPassord);
+    document.addEventListener("click", lukkUserMenu);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (elements.passordModalOverlay.classList.contains("open")) {
+          lukkPassordModal();
+        } else if (elements.userDropdown.classList.contains("open")) {
+          lukkUserMenu();
+        }
+      }
+    });
     elements.tripPrev.addEventListener("click", () => {
       setActiveImage(state.activeImageIndex - 1);
       startCarousel();

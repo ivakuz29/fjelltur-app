@@ -350,13 +350,18 @@ router.post('/api/turer/:id/kommentarer', requireAuth, (req, res) => {
     }
 
     const parentComment = db.prepare(`
-      SELECT id
+      SELECT id, parent_id
       FROM tur_kommentarer
       WHERE id = ? AND tur_id = ?
     `).get(parsedParentId, id);
 
     if (!parentComment) {
       res.json({ ok: false, melding: 'Kommentaren du svarer på finnes ikke.' });
+      return;
+    }
+
+    if (parentComment.parent_id !== null) {
+      res.json({ ok: false, melding: 'Du kan ikke svare på et svar.' });
       return;
     }
   }
@@ -427,11 +432,24 @@ router.post('/api/turer/:id/deltakere', requireAuth, (req, res) => {
 
 router.delete('/api/turer/:id/deltakere/:brukerId', requireAuth, (req, res) => {
   const { id, brukerId } = req.params;
-  const tur = getTripForUser(id, req.session.bruker.id);
+  const requesterId = req.session.bruker.id;
+  const parsedBrukerId = Number(brukerId);
+  const isSelf = parsedBrukerId === requesterId;
 
-  if (!tur) {
-    res.status(404).json({ ok: false, melding: 'Tur ikke funnet.' });
-    return;
+  if (isSelf) {
+    const participation = db.prepare(
+      'SELECT id FROM tur_deltakere WHERE tur_id = ? AND bruker_id = ?'
+    ).get(id, requesterId);
+    if (!participation) {
+      res.status(404).json({ ok: false, melding: 'Du er ikke deltaker på denne turen.' });
+      return;
+    }
+  } else {
+    const tur = getTripForUser(id, requesterId);
+    if (!tur) {
+      res.status(404).json({ ok: false, melding: 'Tur ikke funnet.' });
+      return;
+    }
   }
 
   db.prepare('DELETE FROM tur_deltakere WHERE tur_id = ? AND bruker_id = ?').run(id, brukerId);

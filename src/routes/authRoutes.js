@@ -44,6 +44,38 @@ router.post('/api/login', async (req, res) => {
   res.json({ ok: true });
 });
 
+router.post('/api/bytt-passord', async (req, res) => {
+  if (!req.session.bruker) {
+    res.json({ ok: false, melding: 'Ikke innlogget.' });
+    return;
+  }
+
+  const { gammeltPassord, nyttPassord } = req.body;
+
+  if (!gammeltPassord || !nyttPassord) {
+    res.json({ ok: false, melding: 'Fyll inn alle felt.' });
+    return;
+  }
+
+  if (nyttPassord.length < 6) {
+    res.json({ ok: false, melding: 'Nytt passord må være minst 6 tegn.' });
+    return;
+  }
+
+  const bruker = db.prepare('SELECT * FROM brukere WHERE id = ?').get(req.session.bruker.id);
+  const riktig = await bcrypt.compare(gammeltPassord, bruker.passord);
+
+  if (!riktig) {
+    res.json({ ok: false, melding: 'Feil nåværende passord.' });
+    return;
+  }
+
+  const hashet = await bcrypt.hash(nyttPassord, 10);
+  db.prepare('UPDATE brukere SET passord = ? WHERE id = ?').run(hashet, req.session.bruker.id);
+
+  res.json({ ok: true, melding: 'Passord endret!' });
+});
+
 router.post('/api/logout', (req, res) => {
   req.session.destroy(() => {
     res.json({ ok: true });

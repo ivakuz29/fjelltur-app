@@ -1,5 +1,5 @@
 (function () {
-  const APP_VERSION = "20260422-10";
+  const APP_VERSION = "20260423-1";
   const state = {
     turer: [],
     taggedeTurer: [],
@@ -37,6 +37,16 @@
     lightboxNext: document.getElementById("lightbox-next"),
     lightboxCounter: document.getElementById("lightbox-counter"),
     logoutBtn: document.getElementById("logout-btn"),
+    userMenuBtn: document.getElementById("user-menu-btn"),
+    userDropdown: document.getElementById("user-dropdown"),
+    byttPassordBtn: document.getElementById("bytt-passord-btn"),
+    passordModalOverlay: document.getElementById("passord-modal-overlay"),
+    byttPassordForm: document.getElementById("bytt-passord-form"),
+    gammeltPassord: document.getElementById("gammelt-passord"),
+    nyttPassord: document.getElementById("nytt-passord"),
+    bekreftPassord: document.getElementById("bekreft-passord"),
+    passordMelding: document.getElementById("passord-melding"),
+    passordModalClose: document.getElementById("passord-modal-close"),
     offentlig: document.getElementById("offentlig"),
     nyTurBtn: document.getElementById("ny-tur-btn"),
     sidebarCloseBtn: document.getElementById("sidebar-close-btn"),
@@ -661,6 +671,63 @@
     window.location.href = "/";
   }
 
+  function toggleUserMenu() {
+    const isOpen = elements.userDropdown.classList.contains("open");
+    elements.userDropdown.classList.toggle("open", !isOpen);
+    elements.userMenuBtn.setAttribute("aria-expanded", String(!isOpen));
+  }
+
+  function lukkUserMenu() {
+    elements.userDropdown.classList.remove("open");
+    elements.userMenuBtn.setAttribute("aria-expanded", "false");
+  }
+
+  function aapnePassordModal() {
+    lukkUserMenu();
+    elements.passordModalOverlay.classList.add("open");
+    elements.gammeltPassord.focus();
+  }
+
+  function lukkPassordModal() {
+    elements.passordModalOverlay.classList.remove("open");
+    elements.byttPassordForm.reset();
+    elements.passordMelding.textContent = "";
+    elements.passordMelding.className = "melding";
+  }
+
+  async function handleByttPassord(event) {
+    event.preventDefault();
+    const gammelt = elements.gammeltPassord.value;
+    const nytt = elements.nyttPassord.value;
+    const bekreft = elements.bekreftPassord.value;
+
+    if (nytt !== bekreft) {
+      elements.passordMelding.textContent = "Passordene stemmer ikke overens.";
+      elements.passordMelding.className = "melding feil";
+      return;
+    }
+
+    try {
+      const svar = await fetch("/api/bytt-passord", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gammeltPassord: gammelt, nyttPassord: nytt }),
+      });
+      const data = await svar.json();
+      if (data.ok) {
+        elements.passordMelding.textContent = "Passord endret!";
+        elements.passordMelding.className = "melding ok";
+        setTimeout(lukkPassordModal, 1500);
+      } else {
+        elements.passordMelding.textContent = data.melding || "Noe gikk galt.";
+        elements.passordMelding.className = "melding feil";
+      }
+    } catch (_) {
+      elements.passordMelding.textContent = "Kunne ikke endre passord.";
+      elements.passordMelding.className = "melding feil";
+    }
+  }
+
   function handleTripListClick(event) {
     if (!event.target.closest("[data-action]")) {
       const interactive = event.target.closest("a, button, input, textarea, label");
@@ -776,6 +843,17 @@
     });
     elements.lastOppBtn.addEventListener("click", lastOppBilder);
     elements.logoutBtn.addEventListener("click", loggUt);
+    elements.userMenuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleUserMenu();
+    });
+    elements.byttPassordBtn.addEventListener("click", aapnePassordModal);
+    elements.passordModalClose.addEventListener("click", lukkPassordModal);
+    elements.passordModalOverlay.addEventListener("click", (e) => {
+      if (e.target === elements.passordModalOverlay) lukkPassordModal();
+    });
+    elements.byttPassordForm.addEventListener("submit", handleByttPassord);
+    document.addEventListener("click", lukkUserMenu);
     elements.turListe.addEventListener("click", handleTripListClick);
     elements.eksisterendeBilder.addEventListener("click", handleImageGridClick);
     elements.lightbox.addEventListener("click", lukkLightbox);
@@ -832,7 +910,11 @@
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
-        if (elements.lightbox.style.display === "flex") {
+        if (elements.passordModalOverlay.classList.contains("open")) {
+          lukkPassordModal();
+        } else if (elements.userDropdown.classList.contains("open")) {
+          lukkUserMenu();
+        } else if (elements.lightbox.style.display === "flex") {
           lukkLightbox();
         } else if (document.body.classList.contains("sidebar-open")) {
           resetForm();

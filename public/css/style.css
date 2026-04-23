@@ -1382,10 +1382,6 @@ button.tur-hero {
     gap: 12px;
   }
 
-  .app-username {
-    display: none;
-  }
-
   .btn-logout {
     padding: 8px 14px;
     min-height: 40px;
@@ -1567,6 +1563,7 @@ button.tur-hero {
 
 .tur-section-header {
   padding: 28px 0 8px;
+  grid-column: 1 / -1;
 }
 
 .tur-section-title {
@@ -1750,4 +1747,167 @@ button.tur-hero {
   color: var(--text-muted);
   font-size: 12px;
   text-align: center;
+}
+
+/* ─── User menu dropdown ─────────────────────────────── */
+.user-menu {
+  position: relative;
+}
+
+.user-menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'Azeret Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px 2px;
+  transition: color 0.15s;
+}
+
+.user-menu-btn:hover,
+.user-menu-btn[aria-expanded="true"] {
+  color: var(--accent);
+}
+
+.user-menu-btn span {
+  color: var(--text);
+  transition: color 0.15s;
+}
+
+.user-menu-btn:hover span,
+.user-menu-btn[aria-expanded="true"] span {
+  color: var(--accent);
+}
+
+.user-menu-chevron {
+  width: 10px;
+  height: 7px;
+  flex-shrink: 0;
+  transition: transform 0.18s;
+}
+
+.user-menu-btn[aria-expanded="true"] .user-menu-chevron {
+  transform: rotate(180deg);
+}
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  min-width: 160px;
+  box-shadow: 0 8px 24px rgba(12, 30, 58, 0.12);
+  z-index: 200;
+  display: none;
+}
+
+.user-dropdown.open {
+  display: block;
+}
+
+.user-dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 16px;
+  font-family: 'Azeret Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.user-dropdown-item:hover {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.user-dropdown-item--danger:hover {
+  background: var(--danger-dim);
+  color: var(--danger);
+}
+
+/* ─── Password change modal ──────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 30, 58, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 32px;
+  width: min(420px, calc(100vw - 32px));
+}
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.modal-title {
+  font-family: 'Cormorant', serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+
+.modal-title::after {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 2px;
+  background: var(--accent);
+  margin-top: 10px;
+}
+
+.modal-close {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.modal-close:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+@media (max-width: 700px) {
+  .user-menu-btn {
+    min-height: 40px;
+  }
 }
